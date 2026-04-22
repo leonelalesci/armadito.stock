@@ -1323,7 +1323,7 @@ function renderStock(){
 function buildItemsList(v){if(!v.itemsRaw||!v.itemsRaw.length)return v.items.map(i=>`<div class="venta-item-row"><span class="venta-item-name">${i}</span></div>`).join('');return v.itemsRaw.map((it,idx)=>{const label=v.items[idx]||'—';const precio=it.priceSnapshot!=null?it.priceSnapshot:null;const lt=precio!=null?fmtMoney(precio*it.qty):null;return `<div class="venta-item-row"><span class="venta-item-name">${label}</span>${lt?`<span class="venta-item-price">${lt}</span>`:''}</div>`;}).join('');}
 function renderVentas(){
   const pf=document.getElementById('vfp').value,ef=document.getElementById('vfe').value;
-  let vs=[...ventas].reverse();
+  let vs=[...ventas].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(pf)vs=vs.filter(v=>v.payStatus===pf);
   if(ef)vs=vs.filter(v=>v.delivered===(ef==='si'));
   const s=calcVentasSummary();
