@@ -825,6 +825,7 @@ a { color: var(--green); }
         <button class="btn" id="btnAddTransfer" style="margin-bottom:12px;width:100%;">+ Agregar producto</button>
         <button class="btn primary full" id="btnConfirmTransfer">Confirmar transferencia</button>
       </div>
+      <div id="histTransfList" style="margin-top:8px;"></div>
     </div>
 
     <!-- PRODUCTOS -->
@@ -1152,7 +1153,7 @@ async function loadFromDB(){
     else{cats=['natural','dulce','salado'];await db.from('cats').upsert({id:1,data:cats});}
     gastos=rG.data?rG.data.map(r=>r.data):[];
     fracciones=rF.data?rF.data.map(r=>r.data):[];
-    if(rM.data)rM.data.forEach(row=>{if(row.key==='nPid')nPid=+row.value;if(row.key==='nVid')nVid=+row.value;if(row.key==='nGid')nGid=+row.value;if(row.key==='nFid')nFid=+row.value;});
+    if(rM.data)rM.data.forEach(row=>{if(row.key==='nPid')nPid=+row.value;if(row.key==='nVid')nVid=+row.value;if(row.key==='nGid')nGid=+row.value;if(row.key==='nFid')nFid=+row.value;if(row.key==='histTransf')try{histTransf=JSON.parse(row.value)||[];}catch(e){}});
     if(products.length)nPid=Math.max(nPid,...products.map(p=>p.id))+1;
     if(ventas.length)nVid=Math.max(nVid,...ventas.map(v=>v.id))+1;
     if(gastos.length)nGid=Math.max(nGid,...gastos.map(g=>g.id))+1;
@@ -1290,7 +1291,7 @@ function showSec(id){
   if(id==='productos')renderProds();
   if(id==='gastos')renderGastos();
   if(id==='fraccionar'){fillFracProd();renderFraccionar();}
-  if(id==='transf'){tItems=[];renderTransferItems();}
+  if(id==='transf'){tItems=[];renderTransferItems();renderHistTransf();}
 }
 document.querySelectorAll('.nb,.nbi').forEach(b=>b.addEventListener('click',()=>showSec(b.dataset.sec)));
 
@@ -1372,7 +1373,19 @@ async function saveEditVenta(){const id=+document.getElementById('evId').value,i
 ══════════════════════════════════════ */
 function renderTransferItems(){const dir=document.getElementById('transferDir').value,from=dir==='leonel_nagira'?'leonel':'nagira';document.getElementById('transferItems').innerHTML=tItems.map((item,i)=>{const p=products.find(x=>x.id===item.pid),v=p&&item.vi>=0?p.variants[item.vi]:null,av=v?vSt(v,from):0;return `<div class="tr-row"><select data-ti="${i}" data-r="prod"><option value="">— Producto —</option>${[...products].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(pr=>`<option value="${pr.id}"${item.pid===pr.id?' selected':''}>${pr.name}</option>`).join('')}</select><select data-ti="${i}" data-r="var"${!p?' disabled':''}><option value="-1">— Variante —</option>${p?varOpts(item.pid,item.vi,from):''}</select><input type="number" data-ti="${i}" data-r="qty" min="1" max="${av}" value="${item.qty}" style="width:64px;" inputmode="numeric" /><span class="dp">${v?'disp:'+av:''}</span><button class="btn danger" data-ti="${i}" data-r="del" style="padding:6px 10px;min-height:36px;">×</button></div>`;}).join('');document.querySelectorAll('[data-ti]').forEach(el=>{if(el.dataset.r==='del')el.addEventListener('click',()=>tiCh(el));else el.addEventListener('change',()=>tiCh(el));});}
 function tiCh(el){const i=+el.dataset.ti,r=el.dataset.r;if(r==='prod'){tItems[i].pid=el.value?+el.value:'';tItems[i].vi=-1;renderTransferItems();}else if(r==='var'){tItems[i].vi=+el.value;renderTransferItems();}else if(r==='qty'){tItems[i].qty=Math.max(1,+el.value||1);}else if(r==='del'){tItems.splice(i,1);renderTransferItems();}}
-async function confirmTransfer(){const dir=document.getElementById('transferDir').value,from=dir==='leonel_nagira'?'leonel':'nagira',to=from==='leonel'?'nagira':'leonel';const ok=tItems.filter(t=>t.pid&&t.vi>=0);if(!ok.length){showMsg('Elegí al menos un producto con variante');return;}const errs=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];if(it.qty>vSt(v,from))errs.push(`${p.name}: solo hay ${vSt(v,from)}`);});if(errs.length){showMsg('Error: '+errs.join(', '));return;}const mp=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];setVSt(v,from,vSt(v,from)-it.qty);setVSt(v,to,vSt(v,to)+it.qty);if(!mp.includes(p))mp.push(p);});tItems=[];for(const p of mp)await saveProduct(p);renderAll();showMsg('Transferencia registrada.',true);showSec('stock');}
+function renderHistTransf(){
+  const el=document.getElementById('histTransfList');if(!el)return;
+  if(!histTransf.length){el.innerHTML='<p style="font-size:13px;color:var(--txt3);text-align:center;padding:16px 0;">Sin transferencias aún.</p>';return;}
+  const dirLabel=d=>d==='leonel_nagira'?'Leonel → Nagira':'Nagira → Leonel';
+  el.innerHTML='<p style="font-size:12px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin:12px 0 8px;">Historial</p>'+histTransf.map(t=>{
+    const dt=t.fecha?new Date(t.fecha+'T12:00:00').toLocaleDateString('es-AR'):'';
+    return `<div class="card" style="padding:10px 14px;margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:13px;font-weight:600;color:var(--txt);">${dirLabel(t.dir)}</span><span style="font-size:12px;color:var(--txt2);">${dt}</span></div><div style="font-size:12px;color:var(--txt2);">${t.items.join(' · ')}</div></div>`;
+  }).join('');
+}
+async function confirmTransfer(){const dir=document.getElementById('transferDir').value,from=dir==='leonel_nagira'?'leonel':'nagira',to=from==='leonel'?'nagira':'leonel';const ok=tItems.filter(t=>t.pid&&t.vi>=0);if(!ok.length){showMsg('Elegí al menos un producto con variante');return;}const errs=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];if(it.qty>vSt(v,from))errs.push(`${p.name}: solo hay ${vSt(v,from)}`);});if(errs.length){showMsg('Error: '+errs.join(', '));return;}const mp=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];setVSt(v,from,vSt(v,from)-it.qty);setVSt(v,to,vSt(v,to)+it.qty);if(!mp.includes(p))mp.push(p);});const tReg={fecha:new Date().toISOString().split('T')[0],dir:document.getElementById('transferDir').value,items:ok.map(it=>{const p=products.find(x=>x.id===it.pid);return `${it.qty}x ${p.name} ${vLbl(p.variants[it.vi])}`;})};
+  histTransf.unshift(tReg);
+  await db.from('meta').upsert({key:'histTransf',value:JSON.stringify(histTransf.slice(0,50))});
+  tItems=[];for(const p of mp)await saveProduct(p);renderAll();renderHistTransf();showMsg('Transferencia registrada.',true);showSec('stock');}
 
 /* ══════════════════════════════════════
    PRODUCTOS
