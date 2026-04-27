@@ -870,12 +870,12 @@ a { color: var(--green); }
           <p style="font-size:15px;font-weight:600;margin-bottom:4px;">🚀 Armar carrito</p>
           <p style="font-size:13px;color:var(--txt2);margin-bottom:14px;">Los productos toman precio móvil del sistema. No descuenta del stock.</p>
           <div id="movCarritoWrap"></div>
-          <button id="btnAddMovCarrito" class="btn full" style="margin-bottom:14px;">+ Agregar producto</button>
+          <button id="btnAddMovCarrito" class="btn full" style="margin-bottom:14px;" onclick="addMovCarritoItem()">+ Agregar producto</button>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:12px;border-top:0.5px solid var(--brd);">
             <label style="font-size:13px;color:var(--txt2);white-space:nowrap;">Cambio inicial $</label>
             <input type="number" id="movCambioI" value="2000" style="flex:1;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
           </div>
-          <button id="btnLanzarJornada" class="btn primary full">🚀 Lanzar jornada</button>
+          <button id="btnLanzarJornada" class="btn primary full" onclick="lanzarJornada()">🚀 Lanzar jornada</button>
         </div>
         <!-- Reponer -->
         <div class="card" style="margin-bottom:10px;">
@@ -883,14 +883,14 @@ a { color: var(--green); }
           <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Queda registrado en el historial de Gianella.</p>
           <div class="fg"><label>Producto / variante</label><select id="movRepProd" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;-webkit-appearance:none;"></select></div>
           <div class="fg"><label>Cantidad</label><input type="number" id="movRepCant" value="1" min="1" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" /></div>
-          <button id="btnReponer" class="btn full" style="background:#E1F5EE;color:#085041;border-color:#1D9E75;">📦 Confirmar reposición</button>
+          <button id="btnReponer" class="btn full" style="background:#E1F5EE;color:#085041;border-color:#1D9E75;" onclick="reponerMovil()">📦 Confirmar reposición</button>
         </div>
         <!-- Cerrar jornada -->
         <div class="card" style="border-color:var(--red);">
           <p style="font-size:15px;font-weight:600;margin-bottom:4px;">Cerrar jornada</p>
           <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Muestra el resumen final con sobrantes.</p>
           <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
-          <button id="btnCerrarJornada" class="btn danger full">Cerrar jornada del día</button>
+          <button id="btnCerrarJornada" class="btn danger full" onclick="cerrarJornada()">Cerrar jornada del día</button>
         </div>
       </div>
     </div>
@@ -1371,7 +1371,7 @@ document.getElementById('btnConfirmYes').addEventListener('click',()=>{closeM('m
 document.getElementById('btnConfirmNo').addEventListener('click',()=>{closeM('mConfirm');confirmCb=null;});
 function showMsg(msg,ok=false){
   const d=document.createElement('div');
-  d.style.cssText=`position:fixed;bottom:${window.innerWidth<600?'90px':'20px'};left:50%;transform:translateX(-50%);background:${ok?'var(--green-l)':'var(--bg)'};border:0.5px solid ${ok?'var(--green-m)':'var(--brd2)'};border-radius:12px;padding:12px 20px;font-size:14px;color:${ok?'var(--green)':'var(--txt)'};z-index:999;box-shadow:0 4px 20px var(--shadow);max-width:90%;text-align:center;font-family:inherit;`;
+  d.style.cssText=`position:fixed;bottom:${window.innerWidth<600?'90px':'20px'};left:50%;transform:translateX(-50%);z-index:9999;background:${ok?'var(--green-l)':'var(--bg)'};border:0.5px solid ${ok?'var(--green-m)':'var(--brd2)'};border-radius:12px;padding:12px 20px;font-size:14px;color:${ok?'var(--green)':'var(--txt)'};z-index:999;box-shadow:0 4px 20px var(--shadow);max-width:90%;text-align:center;font-family:inherit;`;
   d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),3200);
 }
 function vLbl(v){if(v.name&&v.weight)return v.name+' – '+v.weight;if(v.name)return v.name;if(v.weight)return v.weight;return 'Sin nombre';}
@@ -1444,7 +1444,11 @@ async function doLogin(){
     if(keep)try{localStorage.setItem('armadito_user',u);}catch(e){}
     document.getElementById('userBadge').textContent=USERS[u].name;
     document.getElementById('loginScreen').classList.remove('active');
-    document.getElementById('mainScreen').classList.add('active');
+    if(USERS[cur]&&USERS[cur].movil){
+      document.getElementById('gScreen').style.display='block';
+    } else {
+      document.getElementById('mainScreen').classList.add('active');
+    }
     document.getElementById('saleDate').value=new Date().toISOString().split('T')[0];
     await loadFromDB();setupRealtime();renderAll();
   }else{document.getElementById('loginError').textContent='Usuario o contraseña incorrectos';}
@@ -2003,7 +2007,11 @@ window.addEventListener('DOMContentLoaded',async()=>{
       cur=saved;
       document.getElementById('userBadge').textContent=USERS[saved].name;
       document.getElementById('loginScreen').style.display='none';
-      document.getElementById('mainScreen').classList.add('active');
+      if(USERS[savedUser]&&USERS[savedUser].movil){
+        document.getElementById('gScreen').style.display='block';
+      } else {
+        document.getElementById('mainScreen').classList.add('active');
+      }
       document.getElementById('saleDate').value=new Date().toISOString().split('T')[0];
       await loadFromDB();setupRealtime();renderAll();
       return;
@@ -2115,7 +2123,7 @@ function renderGItems(){
   document.getElementById('gVentaItems').innerHTML=gVItems.map((it,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--brd);">
       <select onchange="gVItems[${i}].pid=+this.value.split('-')[0];gVItems[${i}].vi=+this.value.split('-')[1];calcGVenta();" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
-        ${jornadaMovil.items.map(jit=>{const p=products.find(x=>x.id===jit.pid);if(!p)return '';const v=p.variants[jit.vi];const disp=jit.qty-(jit.vendido||0);return `<option value="${jit.pid}-${jit.vi}" ${it.pid===jit.pid&&it.vi===jit.vi?'selected':''}>${p.name} ${v.weight||''} — ${v.priceMovil?gFmt(v.priceMovil):'-'} (${disp} disp.)</option>`;}).join('')}
+        ${jornadaMovil.items.map(jit=>{const p=products.find(x=>x.id===jit.pid);if(!p)return '';const v=p.variants[jit.vi];const disp=jit.qty-(jit.vendido||0);const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${jit.pid}-${jit.vi}" ${it.pid===jit.pid&&it.vi===jit.vi?'selected':''}>${p.name} ${varDesc} — ${v.priceMovil?gFmt(v.priceMovil):'-'} (${disp} disp.)</option>`;}).join('')}
       </select>
       <input type="number" min="1" value="${it.qty}" inputmode="numeric" onchange="gVItems[${i}].qty=Math.max(1,+this.value);calcGVenta();" style="width:54px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);text-align:center;font-size:14px;background:var(--bg);color:var(--txt);" />
       <button onclick="gVItems.splice(${i},1);if(!gVItems.length)gVItems=[{pid:jornadaMovil.items[0]?.pid||0,vi:jornadaMovil.items[0]?.vi||0,qty:1}];renderGItems();" style="padding:8px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:38px;font-size:16px;">×</button>
@@ -2288,9 +2296,17 @@ function renderMovVivo(){
   }).join('');
 }
 
+function addMovCarritoItem(){
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>({pid:p.id,vi})));
+  if(!opts.length)return;
+  if(!movCarritoItems.length)movCarritoItems=[{pid:opts[0].pid,vi:opts[0].vi,qty:1}];
+  else movCarritoItems.push({pid:opts[0].pid,vi:opts[0].vi,qty:1});
+  renderMovCarrito();
+}
 function renderMovCarrito(){
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>({pid:p.id,vi,label:`${p.name} ${v.weight||v.name||''} — ${gFmt(v.priceMovil)} móvil`})));
+  const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid:p.id,vi,label:`${p.name} ${varDesc} — ${gFmt(v.priceMovil)} móvil`};}));
   const el=document.getElementById('movCarritoWrap');if(!el)return;
   if(!movCarritoItems.length)movCarritoItems=[{pid:opts[0]?.pid||0,vi:opts[0]?.vi||0,qty:1}];
   el.innerHTML=movCarritoItems.map((it,i)=>`
@@ -2306,7 +2322,7 @@ function renderMovCarrito(){
 function fillMovRepProd(){
   const sel=document.getElementById('movRepProd');if(!sel)return;
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  sel.innerHTML=sorted.flatMap(p=>p.variants.map((v,vi)=>`<option value="${p.id}-${vi}">${p.name} ${v.weight||v.name||''}</option>`)).join('');
+  sel.innerHTML=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${p.id}-${vi}">${p.name} ${varDesc}</option>`;})).join('');
 }
 
 async function lanzarJornada(){
