@@ -858,12 +858,20 @@ a { color: var(--green); }
     <!-- MÓVIL -->
     <div id="sec-movil" class="sec">
       <div id="movil-leonel">
-        <!-- Resumen -->
-        <div id="movResumen" style="margin-bottom:12px;"></div>
         <!-- Ventas en vivo -->
         <div class="card" style="margin-bottom:10px;">
           <p style="font-size:15px;font-weight:600;margin-bottom:12px;">👁 Ventas en vivo</p>
           <div id="movVivo"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin jornada activa o sin ventas aún.</p></div>
+        </div>
+        <!-- Resumen -->
+        <div id="movResumen" style="margin-bottom:12px;"></div>
+        <!-- Reponer -->
+        <div class="card" style="margin-bottom:10px;">
+          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">📦 Reponer stock</p>
+          <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Queda registrado en el historial de Gianella.</p>
+          <div class="fg"><label>Producto / variante</label><select id="movRepProd" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;-webkit-appearance:none;"></select></div>
+          <div class="fg"><label>Cantidad</label><input type="number" id="movRepCant" value="1" min="1" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" /></div>
+          <button id="btnReponer" class="btn full" style="background:#E1F5EE;color:#085041;border-color:#1D9E75;" onclick="reponerMovil()">📦 Confirmar reposición</button>
         </div>
         <!-- Armar carrito -->
         <div class="card" style="margin-bottom:10px;">
@@ -877,14 +885,6 @@ a { color: var(--green); }
           </div>
           <button id="btnLanzarJornada" class="btn primary full" onclick="lanzarJornada()">🚀 Lanzar jornada</button>
         </div>
-        <!-- Reponer -->
-        <div class="card" style="margin-bottom:10px;">
-          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">📦 Reponer stock</p>
-          <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Queda registrado en el historial de Gianella.</p>
-          <div class="fg"><label>Producto / variante</label><select id="movRepProd" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;-webkit-appearance:none;"></select></div>
-          <div class="fg"><label>Cantidad</label><input type="number" id="movRepCant" value="1" min="1" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" /></div>
-          <button id="btnReponer" class="btn full" style="background:#E1F5EE;color:#085041;border-color:#1D9E75;" onclick="reponerMovil()">📦 Confirmar reposición</button>
-        </div>
         <!-- Cerrar jornada -->
         <div class="card" style="border-color:var(--red);">
           <p style="font-size:15px;font-weight:600;margin-bottom:4px;">Cerrar jornada</p>
@@ -892,6 +892,7 @@ a { color: var(--green); }
           <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
           <button id="btnCerrarJornada" class="btn danger full" onclick="cerrarJornada()">Cerrar jornada del día</button>
         </div>
+
       </div>
     </div>
 
@@ -1333,6 +1334,7 @@ async function loadFromDB(){
     const rJ=await db.from('jornada_movil').select('*').eq('id',1).single();
     if(rJ.data)jornadaMovil=rJ.data.data;
     setSyncBadge('ok');
+    if(cur&&USERS[cur]&&USERS[cur].movil){renderGianellaScreen();}
   }catch(e){console.error(e);setSyncBadge('err');products=SPRODS;ventas=[];gastos=[];}
 }
 async function saveProduct(p){setSyncBadge('loading');const{error}=await db.from('products').upsert({id:p.id,data:p});setSyncBadge(error?'err':'ok');await db.from('meta').upsert({key:'nPid',value:nPid});}
@@ -1359,7 +1361,7 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'cats'},async()=>{const{data}=await db.from('cats').select('*').eq('id',1).single();if(data)cats=data.data;fillCatF();renderProds();})
     .on('postgres_changes',{event:'*',schema:'public',table:'gastos'},async()=>{const{data}=await db.from('gastos').select('*');if(data)gastos=data.map(r=>r.data);renderGastos();})
     .on('postgres_changes',{event:'*',schema:'public',table:'fraccionar'},async()=>{const{data}=await db.from('fraccionar').select('*');if(data)fracciones=data.map(r=>r.data);renderFraccionar();renderStock();})
-    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();if(jd)jornadaMovil=jd.data;if(cur&&cur.movil)renderMovil();else renderResumenMovil();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();if(jd)jornadaMovil=jd.data;if(cur&&USERS[cur]&&USERS[cur].movil){renderGianellaScreen();}else{renderResumenMovil();renderMovVivo();}})
     .subscribe();
 }
 
@@ -2327,6 +2329,8 @@ function fillMovRepProd(){
 
 async function lanzarJornada(){
   if(!movCarritoItems.length){showMsg('Agregá al menos un producto.');return;}
+  const pw=prompt('Ingresá tu contraseña para lanzar la jornada:');
+  if(!pw||!cur||pw!==USERS[cur].pass){showMsg('Contraseña incorrecta.');return;}
   const cambio=parseFloat(document.getElementById('movCambioI').value)||0;
   jornadaMovil={
     items:movCarritoItems.map(it=>({pid:it.pid,vi:it.vi,qty:it.qty,vendido:0})),
@@ -2341,6 +2345,8 @@ async function lanzarJornada(){
 
 async function cerrarJornada(){
   if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
+  const pw=prompt('Ingresá tu contraseña para cerrar la jornada:');
+  if(!pw||!cur||pw!==USERS[cur].pass){showMsg('Contraseña incorrecta.');return;}
   const hist=jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
   const tot=hist.reduce((s,v)=>s+v.tot,0);
   const uds=hist.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
