@@ -745,6 +745,7 @@ a { color: var(--green); }
     <button class="nb" data-sec="productos">Productos</button>
     <button class="nb" data-sec="gastos">Gastos</button>
     <button class="nb" data-sec="fraccionar">Fraccionar</button>
+    <button class="nb" data-sec="movil">Móvil</button>
   </nav>
 
   <!-- CONTENIDO -->
@@ -854,6 +855,46 @@ a { color: var(--green); }
       <div id="gastosList"></div>
     </div>
 
+    <!-- MÓVIL -->
+    <div id="sec-movil" class="sec">
+      <div id="movil-leonel">
+        <!-- Resumen -->
+        <div id="movResumen" style="margin-bottom:12px;"></div>
+        <!-- Ventas en vivo -->
+        <div class="card" style="margin-bottom:10px;">
+          <p style="font-size:15px;font-weight:600;margin-bottom:12px;">👁 Ventas en vivo</p>
+          <div id="movVivo"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin jornada activa o sin ventas aún.</p></div>
+        </div>
+        <!-- Armar carrito -->
+        <div class="card" style="margin-bottom:10px;">
+          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">🚀 Armar carrito</p>
+          <p style="font-size:13px;color:var(--txt2);margin-bottom:14px;">Los productos toman precio móvil del sistema. No descuenta del stock.</p>
+          <div id="movCarritoWrap"></div>
+          <button id="btnAddMovCarrito" class="btn full" style="margin-bottom:14px;">+ Agregar producto</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:12px;border-top:0.5px solid var(--brd);">
+            <label style="font-size:13px;color:var(--txt2);white-space:nowrap;">Cambio inicial $</label>
+            <input type="number" id="movCambioI" value="2000" style="flex:1;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+          </div>
+          <button id="btnLanzarJornada" class="btn primary full">🚀 Lanzar jornada</button>
+        </div>
+        <!-- Reponer -->
+        <div class="card" style="margin-bottom:10px;">
+          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">📦 Reponer stock</p>
+          <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Queda registrado en el historial de Gianella.</p>
+          <div class="fg"><label>Producto / variante</label><select id="movRepProd" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;-webkit-appearance:none;"></select></div>
+          <div class="fg"><label>Cantidad</label><input type="number" id="movRepCant" value="1" min="1" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" /></div>
+          <button id="btnReponer" class="btn full" style="background:#E1F5EE;color:#085041;border-color:#1D9E75;">📦 Confirmar reposición</button>
+        </div>
+        <!-- Cerrar jornada -->
+        <div class="card" style="border-color:var(--red);">
+          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">Cerrar jornada</p>
+          <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Muestra el resumen final con sobrantes.</p>
+          <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
+          <button id="btnCerrarJornada" class="btn danger full">Cerrar jornada del día</button>
+        </div>
+      </div>
+    </div>
+
     <!-- FRACCIONAR -->
     <div id="sec-fraccionar" class="sec">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -897,6 +938,7 @@ a { color: var(--green); }
       <button class="nbi" data-sec="productos"><span class="icon">🗂</span>Productos</button>
       <button class="nbi" data-sec="gastos"><span class="icon">💸</span>Gastos</button>
       <button class="nbi" data-sec="fraccionar"><span class="icon">⚡️</span>Fracc.</button>
+      <button class="nbi" data-sec="movil"><span class="icon">🛒</span>Móvil</button>
     </div>
   </nav>
 
@@ -1077,6 +1119,136 @@ a { color: var(--green); }
   </div>
 </div>
 
+<!-- PANTALLA GIANELLA -->
+<div id="gScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <!-- Header Gianella -->
+  <div style="background:var(--bg);border-bottom:0.5px solid var(--brd);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">
+    <div style="font-size:15px;font-weight:600;">🛒 armadito móvil</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="gSyncBadge" style="font-size:11px;color:var(--green);">● sinc</span>
+      <button id="btnGLogout" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);cursor:pointer;">Salir</button>
+    </div>
+  </div>
+
+  <!-- Sin jornada -->
+  <div id="gSinJornada" style="display:none;text-align:center;padding:80px 24px;">
+    <div style="font-size:48px;margin-bottom:16px;">🛒</div>
+    <p style="font-size:18px;font-weight:600;margin-bottom:8px;">Sin jornada activa</p>
+    <p style="font-size:14px;color:var(--txt2);line-height:1.6;">Todavía no armaron el carrito del día.<br>Esperá a que Leonel o Nagira lo lancen.</p>
+  </div>
+
+  <!-- Con jornada -->
+  <div id="gConJornada" style="display:none;">
+    <!-- Info jornada -->
+    <div id="gInfoJornada" style="background:var(--bg2);padding:8px 16px;font-size:12px;color:var(--txt2);display:flex;justify-content:space-between;"></div>
+
+    <!-- Tabs Gianella -->
+    <div style="display:flex;gap:0;border-bottom:0.5px solid var(--brd);background:var(--bg);position:sticky;top:53px;z-index:9;">
+      <button class="gTab on" id="gTabStk" onclick="showGTab('stk',this)" style="flex:1;padding:12px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">Stock</button>
+      <button class="gTab" id="gTabNv" onclick="showGTab('nv',this)" style="flex:1;padding:12px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">Nueva venta</button>
+      <button class="gTab" id="gTabHi" onclick="showGTab('hi',this)" style="flex:1;padding:12px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">Historial</button>
+      <button class="gTab" id="gTabCa" onclick="showGTab('ca',this)" style="flex:1;padding:12px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">Caja</button>
+    </div>
+
+    <!-- STOCK -->
+    <div id="gPnlStk" class="gPnl" style="padding:16px;">
+      <div style="background:var(--bg);border:0.5px solid var(--brd);border-radius:var(--radius-md);overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:var(--bg2);">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th>
+            <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#C026D3;border-bottom:0.5px solid var(--brd);">$ móvil</th>
+            <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th>
+            <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th>
+          </tr></thead>
+          <tbody id="gTbStk"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- NUEVA VENTA -->
+    <div id="gPnlNv" class="gPnl" style="padding:16px;display:none;">
+      <div style="background:var(--bg);border:0.5px solid var(--brd);border-radius:var(--radius-md);padding:16px;">
+        <p style="font-size:15px;font-weight:600;margin-bottom:16px;">Registrar venta</p>
+        <!-- Edificio: checks -->
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Edificio</label>
+          <div style="display:flex;gap:8px;">
+            <button id="gBtnPJ" onclick="selEdif('pj')" style="flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #BA7517;background:#FAEEDA;color:#633806;font-size:13px;font-weight:600;cursor:pointer;">Poder Judicial</button>
+            <button id="gBtnPA" onclick="selEdif('pa')" style="flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;">Palacio de Justicia</button>
+          </div>
+        </div>
+        <!-- Productos -->
+        <div id="gVentaItems"></div>
+        <button onclick="addGItem()" style="width:100%;margin:8px 0 16px;padding:10px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;cursor:pointer;">+ Agregar producto</button>
+        <!-- Totales -->
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:0.5px solid var(--brd);font-size:13px;">
+          <span style="color:var(--txt2);">Subtotal</span><span id="gVSubtotal" style="font-weight:600;">$0</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;">
+          <span style="color:var(--txt2);white-space:nowrap;">Descuento $</span>
+          <input type="number" id="gVDesc" value="0" inputmode="numeric" style="width:110px;padding:7px 10px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" oninput="calcGVenta()" />
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:0.5px solid var(--brd);margin-bottom:16px;">
+          <span style="font-size:17px;font-weight:700;">Total</span><span id="gVTotal" style="font-size:17px;font-weight:700;">$0</span>
+        </div>
+        <!-- Pago: checks -->
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Forma de pago</label>
+          <div style="display:flex;gap:8px;">
+            <button id="gBtnEf" onclick="selPago('ef')" style="flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #185FA5;background:#E6F1FB;color:#0C447C;font-size:13px;font-weight:600;cursor:pointer;">Efectivo</button>
+            <button id="gBtnTr" onclick="selPago('tr')" style="flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;">Transferencia</button>
+          </div>
+        </div>
+        <!-- Pago especial -->
+        <div id="gDivMixto" style="display:none;background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+          <p style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:10px;">PAGO MIXTO</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;">Efectivo $</label>
+              <input type="number" id="gMixEf" value="0" inputmode="numeric" style="width:100%;padding:8px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" oninput="chkMixto()" /></div>
+            <div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;">Transferencia $</label>
+              <input type="number" id="gMixTr" value="0" inputmode="numeric" style="width:100%;padding:8px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" oninput="chkMixto()" /></div>
+          </div>
+          <div id="gMixSt" style="font-size:12px;text-align:center;margin-top:8px;"></div>
+        </div>
+        <button id="gBtnMixto" onclick="toggleGMixto()" style="width:100%;margin-bottom:12px;padding:8px;border:0.5px dashed var(--brd);border-radius:var(--radius-sm);background:none;cursor:pointer;font-size:12px;color:var(--txt2);">⚡ Pago especial (mixto)</button>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">Nota (opcional)</label>
+          <input type="text" id="gVNota" placeholder="algo a recordar..." style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+        </div>
+        <button onclick="confirmarGVenta()" style="width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:700;">Confirmar venta</button>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="gPnlHi" class="gPnl" style="padding:16px;display:none;">
+      <div id="gListHi"></div>
+    </div>
+
+    <!-- CAJA -->
+    <div id="gPnlCa" class="gPnl" style="padding:16px;display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">CAMBIO INICIAL</div><div style="font-size:18px;font-weight:600;" id="gCajaCambio">$0</div></div>
+        <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">EFECTIVO</div><div style="font-size:18px;font-weight:600;color:#185FA5;" id="gCajaEf">$0</div></div>
+        <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">EFECTIVO + CAMBIO</div><div style="font-size:18px;font-weight:600;color:#0F6E56;" id="gCajaEfC">$0</div></div>
+        <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">TRANSFERENCIAS</div><div style="font-size:18px;font-weight:600;color:#7C3AED;" id="gCajaTr">$0</div></div>
+        <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">PRODUCTOS VENDIDOS</div><div style="font-size:18px;font-weight:600;" id="gCajaCant">0</div></div>
+        <div style="background:#EAF3DE;border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:#3B6D11;margin-bottom:3px;">TOTAL DEL DÍA</div><div style="font-size:18px;font-weight:600;color:#3B6D11;" id="gCajaTot">$0</div></div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--brd);border-radius:var(--radius-md);padding:12px 14px;">
+        <p style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">Por edificio</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--brd);">
+          <span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Poder Judicial</span>
+          <span id="gCajaPJ" style="font-weight:600;font-size:14px;">$0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+          <span style="background:#F3E8FF;color:#26215C;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Palacio de Justicia</span>
+          <span id="gCajaPa" style="font-weight:600;font-size:14px;">$0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -1109,13 +1281,13 @@ initTheme();
 /* ══════════════════════════════════════
    ESTADO
 ══════════════════════════════════════ */
-const USERS = {lalesci:{pass:'delfi',name:'Leonel'}, nslaibe:{pass:'delfi',name:'Nagira'}};
+const USERS = {lalesci:{pass:'delfi',name:'Leonel'}, nslaibe:{pass:'delfi',name:'Nagira'}, galesci:{pass:'2002',name:'Gianella',movil:true}};
 const SPRODS = [
   {id:1,name:'Almendras',cat:'salado',minStock:3,variants:[{name:'Almendras',weight:'',price:1500,priceMovil:1800,costo:null,stockLeonel:4,stockNagira:4}]},
   {id:2,name:'Granola',cat:'dulce',minStock:2,variants:[{name:'',weight:'200g',price:800,priceMovil:950,costo:null,stockLeonel:3,stockNagira:2},{name:'',weight:'500g',price:1800,priceMovil:2100,costo:null,stockLeonel:2,stockNagira:1}]},
   {id:3,name:'Miel',cat:'natural',minStock:2,variants:[{name:'Líquida',weight:'500g',price:1200,priceMovil:null,costo:null,stockLeonel:2,stockNagira:3},{name:'Sólida',weight:'500g',price:1200,priceMovil:null,costo:null,stockLeonel:0,stockNagira:2}]},
 ];
-let cur=null,ePid=null,products=[],ventas=[],cats=['natural','dulce','salado'],gastos=[],fracciones=[];
+let cur=null,ePid=null,products=[],ventas=[],cats=['natural','dulce','salado'],gastos=[],fracciones=[],histTransf=[],jornadaMovil=null;
 let nPid=1,nVid=1,nGid=1,nFid=1;
 let togS={sale:false,ev:false},sItems=[],eItems=[],tItems=[],conceptoItems=[],confirmCb=null;
 let syncChannel=null;
@@ -1158,6 +1330,8 @@ async function loadFromDB(){
     if(ventas.length)nVid=Math.max(nVid,...ventas.map(v=>v.id))+1;
     if(gastos.length)nGid=Math.max(nGid,...gastos.map(g=>g.id))+1;
     if(fracciones.length)nFid=Math.max(nFid,...fracciones.map(f=>f.id))+1;
+    const rJ=await db.from('jornada_movil').select('*').eq('id',1).single();
+    if(rJ.data)jornadaMovil=rJ.data.data;
     setSyncBadge('ok');
   }catch(e){console.error(e);setSyncBadge('err');products=SPRODS;ventas=[];gastos=[];}
 }
@@ -1168,6 +1342,12 @@ async function deleteVentaDB(id){setSyncBadge('loading');const{error}=await db.f
 async function saveCats(){setSyncBadge('loading');const{error}=await db.from('cats').upsert({id:1,data:cats});setSyncBadge(error?'err':'ok');}
 async function saveGasto(g){setSyncBadge('loading');const{error}=await db.from('gastos').upsert({id:g.id,data:g});setSyncBadge(error?'err':'ok');await db.from('meta').upsert({key:'nGid',value:nGid});}
 async function deleteGastoDB(id){setSyncBadge('loading');const{error}=await db.from('gastos').delete().eq('id',id);setSyncBadge(error?'err':'ok');}
+async function saveJornada(){
+  if(!jornadaMovil)return;
+  setSyncBadge('loading');
+  const{error}=await db.from('jornada_movil').upsert({id:1,data:jornadaMovil,updated_at:new Date().toISOString()});
+  setSyncBadge(error?'err':'ok');
+}
 async function saveFraccion(f){setSyncBadge('loading');const{error}=await db.from('fraccionar').upsert({id:f.id,data:f});setSyncBadge(error?'err':'ok');await db.from('meta').upsert({key:'nFid',value:nFid});}
 async function deleteFraccionDB(id){setSyncBadge('loading');const{error}=await db.from('fraccionar').delete().eq('id',id);setSyncBadge(error?'err':'ok');}
 
@@ -1179,6 +1359,7 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'cats'},async()=>{const{data}=await db.from('cats').select('*').eq('id',1).single();if(data)cats=data.data;fillCatF();renderProds();})
     .on('postgres_changes',{event:'*',schema:'public',table:'gastos'},async()=>{const{data}=await db.from('gastos').select('*');if(data)gastos=data.map(r=>r.data);renderGastos();})
     .on('postgres_changes',{event:'*',schema:'public',table:'fraccionar'},async()=>{const{data}=await db.from('fraccionar').select('*');if(data)fracciones=data.map(r=>r.data);renderFraccionar();renderStock();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();if(jd)jornadaMovil=jd.data;if(cur&&cur.movil)renderMovil();else renderResumenMovil();})
     .subscribe();
 }
 
@@ -1291,6 +1472,7 @@ function showSec(id){
   if(id==='productos')renderProds();
   if(id==='gastos')renderGastos();
   if(id==='fraccionar'){fillFracProd();renderFraccionar();}
+  if(id==='movil'){renderMovilSection();}
   if(id==='transf'){tItems=[];renderTransferItems();renderHistTransf();}
 }
 document.querySelectorAll('.nb,.nbi').forEach(b=>b.addEventListener('click',()=>showSec(b.dataset.sec)));
@@ -1413,6 +1595,12 @@ function renderCatList(){document.getElementById('catList').innerHTML=cats.map((
 ══════════════════════════════════════ */
 document.getElementById('btnLogin').addEventListener('click',doLogin);
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('btnGLogout').addEventListener('click',()=>{
+  cur=null;try{localStorage.removeItem('armadito_user');}catch(e){}
+  document.getElementById('gScreen').style.display='none';
+  document.getElementById('loginScreen').classList.add('active');
+  document.getElementById('loginPass').value='';
+});
 document.getElementById('btnLogout').addEventListener('click',doLogout);
 document.getElementById('btnAddSaleItem').addEventListener('click',()=>{sItems.push({pid:'',vi:-1,qty:1});renderSaleItems();});
 document.getElementById('saleLoc').addEventListener('change',renderSaleItems);
@@ -1823,6 +2011,360 @@ window.addEventListener('DOMContentLoaded',async()=>{
   }catch(e){}
   document.getElementById('loginScreen').classList.add('active');
 });
+
+
+/* ══════════════════════════════════════
+   MÓVIL — GIANELLA
+══════════════════════════════════════ */
+let gEdifSel='pj', gPagoSel='ef', gMixtoOn=false;
+let gVItems=[{pid:0,qty:1}];
+const GEDIF={pj:{lbl:'Poder Judicial',bc:'bpj',hc:'gHpj',tc:'pj-txt',col:'#633806'},pa:{lbl:'Palacio de Justicia',bc:'bpa',hc:'gHpa',tc:'pa-txt',col:'#26215C'}};
+const gFmt=n=>'$'+Math.round(n).toLocaleString('es-AR');
+
+function renderGianellaScreen(){
+  if(!jornadaMovil||!jornadaMovil.activa){
+    document.getElementById('gSinJornada').style.display='block';
+    document.getElementById('gConJornada').style.display='none';
+  } else {
+    document.getElementById('gSinJornada').style.display='none';
+    document.getElementById('gConJornada').style.display='block';
+    const f=jornadaMovil.fecha?new Date(jornadaMovil.fecha+'T12:00:00').toLocaleDateString('es-AR'):'';
+    document.getElementById('gInfoJornada').innerHTML=`<span>Jornada ${f}</span><span>Cambio: ${gFmt(jornadaMovil.cambio||0)}</span>`;
+    showGTab('stk',document.getElementById('gTabStk'));
+  }
+}
+
+function showGTab(id,btn){
+  ['stk','nv','hi','ca'].forEach(x=>{
+    const p=document.getElementById('gPnl'+x.charAt(0).toUpperCase()+x.slice(1));
+    const t=document.getElementById('gTab'+x.charAt(0).toUpperCase()+x.slice(1));
+    if(p){p.classList.remove('on');p.style.display='none';}
+    if(t)t.classList.remove('on');
+  });
+  const pnl=document.getElementById('gPnl'+id.charAt(0).toUpperCase()+id.slice(1));
+  if(pnl){pnl.style.display='block';pnl.classList.add('on');}
+  if(btn)btn.classList.add('on');
+  if(id==='stk')renderGStock();
+  if(id==='nv'){gVItems=[{pid:0,qty:1}];renderGItems();}
+  if(id==='hi')renderGHist();
+  if(id==='ca')renderGCaja();
+}
+
+function renderGStock(){
+  if(!jornadaMovil||!jornadaMovil.items){document.getElementById('gTbStk').innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--txt2);">Sin productos</td></tr>';return;}
+  document.getElementById('gTbStk').innerHTML=jornadaMovil.items.map(it=>{
+    const p=products.find(x=>x.id===it.pid);
+    if(!p)return '';
+    const v=p.variants[it.vi];
+    const disp=it.qty-(it.vendido||0);
+    const low=disp<=1;
+    return `<tr style="${low?'background:rgba(163,45,45,0.07);':''}">
+      <td style="padding:8px 12px;font-size:13px;"><strong>${p.name}</strong><br><span style="font-size:11px;color:var(--txt2);">${v.weight||v.name||''}</span>${low?'<span style="font-size:10px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:20px;font-weight:500;margin-left:5px;">poco</span>':''}</td>
+      <td style="padding:8px;text-align:center;color:#C026D3;font-weight:600;font-size:13px;">${v.priceMovil?gFmt(v.priceMovil):'-'}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">${it.vendido||0}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:#3B6D11;font-size:14px;">${disp}</td>
+    </tr>`;
+  }).join('');
+}
+
+function selEdif(e){
+  gEdifSel=e;
+  const pj=document.getElementById('gBtnPJ');
+  const pa=document.getElementById('gBtnPA');
+  if(e==='pj'){
+    pj.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #BA7517;background:#FAEEDA;color:#633806;font-size:13px;font-weight:600;cursor:pointer;';
+    pa.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;';
+  } else {
+    pa.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #7C3AED;background:#F3E8FF;color:#26215C;font-size:13px;font-weight:600;cursor:pointer;';
+    pj.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;';
+  }
+}
+
+function selPago(p){
+  gPagoSel=p;
+  const ef=document.getElementById('gBtnEf');
+  const tr=document.getElementById('gBtnTr');
+  if(p==='ef'){
+    ef.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #185FA5;background:#E6F1FB;color:#0C447C;font-size:13px;font-weight:600;cursor:pointer;';
+    tr.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;';
+  } else {
+    tr.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #1D9E75;background:#E1F5EE;color:#085041;font-size:13px;font-weight:600;cursor:pointer;';
+    ef.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;';
+  }
+}
+
+function toggleGMixto(){
+  gMixtoOn=!gMixtoOn;
+  document.getElementById('gDivMixto').style.display=gMixtoOn?'block':'none';
+  document.getElementById('gBtnMixto').textContent=gMixtoOn?'Volver a pago simple':'⚡ Pago especial (mixto)';
+}
+
+function chkMixto(){
+  const tot=parseFloat(document.getElementById('gVTotal').textContent.replace(/\D/g,''))||0;
+  const ef=parseFloat(document.getElementById('gMixEf').value)||0;
+  const tr=parseFloat(document.getElementById('gMixTr').value)||0;
+  const st=document.getElementById('gMixSt');const s=ef+tr;
+  if(!s){st.textContent='';return;}
+  if(s===tot){st.style.color='#3B6D11';st.textContent='✓ Pago completo';}
+  else if(s<tot){st.style.color='#BA7517';st.textContent='Falta: '+gFmt(tot-s);}
+  else{st.style.color='#A32D2D';st.textContent='Excede: '+gFmt(s-tot);}
+}
+
+function renderGItems(){
+  if(!jornadaMovil||!jornadaMovil.items){document.getElementById('gVentaItems').innerHTML='<p style="color:var(--txt2);font-size:13px;padding:8px 0;">Sin jornada activa</p>';return;}
+  document.getElementById('gVentaItems').innerHTML=gVItems.map((it,i)=>`
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--brd);">
+      <select onchange="gVItems[${i}].pid=+this.value.split('-')[0];gVItems[${i}].vi=+this.value.split('-')[1];calcGVenta();" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
+        ${jornadaMovil.items.map(jit=>{const p=products.find(x=>x.id===jit.pid);if(!p)return '';const v=p.variants[jit.vi];const disp=jit.qty-(jit.vendido||0);return `<option value="${jit.pid}-${jit.vi}" ${it.pid===jit.pid&&it.vi===jit.vi?'selected':''}>${p.name} ${v.weight||''} — ${v.priceMovil?gFmt(v.priceMovil):'-'} (${disp} disp.)</option>`;}).join('')}
+      </select>
+      <input type="number" min="1" value="${it.qty}" inputmode="numeric" onchange="gVItems[${i}].qty=Math.max(1,+this.value);calcGVenta();" style="width:54px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);text-align:center;font-size:14px;background:var(--bg);color:var(--txt);" />
+      <button onclick="gVItems.splice(${i},1);if(!gVItems.length)gVItems=[{pid:jornadaMovil.items[0]?.pid||0,vi:jornadaMovil.items[0]?.vi||0,qty:1}];renderGItems();" style="padding:8px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:38px;font-size:16px;">×</button>
+    </div>`).join('');
+  calcGVenta();
+}
+
+function addGItem(){
+  if(!jornadaMovil||!jornadaMovil.items||!jornadaMovil.items.length)return;
+  gVItems.push({pid:jornadaMovil.items[0].pid,vi:jornadaMovil.items[0].vi,qty:1});
+  renderGItems();
+}
+
+function calcGVenta(){
+  let sub=0;
+  gVItems.forEach(it=>{
+    const jit=jornadaMovil&&jornadaMovil.items?jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi):null;
+    const p=products.find(x=>x.id===it.pid);
+    if(!p||!jit)return;
+    const v=p.variants[it.vi];
+    sub+=(v.priceMovil||0)*it.qty;
+  });
+  const desc=parseFloat(document.getElementById('gVDesc').value)||0;
+  document.getElementById('gVSubtotal').textContent=gFmt(sub);
+  document.getElementById('gVTotal').textContent=gFmt(Math.max(0,sub-desc));
+  if(gMixtoOn)chkMixto();
+}
+
+async function confirmarGVenta(){
+  if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
+  const desc=parseFloat(document.getElementById('gVDesc').value)||0;
+  let sub=0,its=[];
+  for(const it of gVItems){
+    const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);
+    const p=products.find(x=>x.id===it.pid);
+    if(!p||!jit)continue;
+    const v=p.variants[it.vi];
+    sub+=(v.priceMovil||0)*it.qty;
+    jit.vendido=(jit.vendido||0)+it.qty;
+    its.push({pid:it.pid,vi:it.vi,n:p.name+' '+(v.weight||v.name||''),qty:it.qty,precio:v.priceMovil||0});
+  }
+  const tot=Math.max(0,sub-desc);
+  let ef=0,tr=0;
+  if(gMixtoOn){ef=parseFloat(document.getElementById('gMixEf').value)||0;tr=parseFloat(document.getElementById('gMixTr').value)||0;}
+  else{if(gPagoSel==='ef')ef=tot;else tr=tot;}
+  const hora=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  if(!jornadaMovil.histVentas)jornadaMovil.histVentas=[];
+  jornadaMovil.histVentas.unshift({id:Date.now(),type:'v',its,tot,ef,tr,desc,edif:gEdifSel,hora});
+  await saveJornada();
+  gVItems=[{pid:jornadaMovil.items[0]?.pid||0,vi:jornadaMovil.items[0]?.vi||0,qty:1}];
+  document.getElementById('gVDesc').value=0;
+  document.getElementById('gVNota').value='';
+  if(gMixtoOn){document.getElementById('gMixEf').value=0;document.getElementById('gMixTr').value=0;toggleGMixto();}
+  renderGStock();renderGHist();renderGCaja();
+  showMsg('✅ Venta registrada.',true);
+  showGTab('stk',document.getElementById('gTabStk'));
+}
+
+async function eliminarGVenta(id){
+  if(!jornadaMovil||!jornadaMovil.histVentas)return;
+  const idx=jornadaMovil.histVentas.findIndex(v=>v.id===id);
+  if(idx<0)return;
+  const v=jornadaMovil.histVentas[idx];
+  v.its.forEach(it=>{const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);if(jit)jit.vendido=Math.max(0,(jit.vendido||0)-it.qty);});
+  jornadaMovil.histVentas.splice(idx,1);
+  await saveJornada();
+  renderGStock();renderGHist();renderGCaja();
+  showMsg('Venta eliminada.',true);
+}
+
+function renderGHist(){
+  const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
+  if(!hist.length){document.getElementById('gListHi').innerHTML='<p style="text-align:center;padding:32px;font-size:13px;color:var(--txt2);">Sin actividad aún</p>';return;}
+  document.getElementById('gListHi').innerHTML=hist.map(v=>{
+    if(v.type==='rep')return `<div class="gHrep"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#E1F5EE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#085041;font-size:13px;margin-top:4px;">${v.desc}</div></div><span style="color:#085041;font-size:11px;">${v.hora}</span></div></div>`;
+    const e=GEDIF[v.edif];
+    return `<div class="${e.hc}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="background:${v.edif==='pj'?'#FAEEDA':'#F3E8FF'};color:${e.col};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">${e.lbl}</span>
+          <span style="color:${e.col};font-size:11px;">${v.hora}</span>
+          ${v.desc>0?`<span style="color:${e.col};font-size:11px;">desc. ${gFmt(v.desc)}</span>`:''}
+        </div>
+        <span style="color:${e.col};font-weight:700;font-size:15px;margin-left:8px;">${gFmt(v.tot)}</span>
+      </div>
+      <div style="margin-bottom:8px;">${v.its.map(it=>`<div style="color:${e.col};font-size:13px;padding:2px 0;">${it.qty}x ${it.n}</div>`).join('')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;gap:6px;">
+          ${v.ef>0?`<span style="background:#E6F1FB;color:#0C447C;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">efectivo ${gFmt(v.ef)}</span>`:''}
+          ${v.tr>0?`<span style="background:#E1F5EE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">transferencia ${gFmt(v.tr)}</span>`:''}
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button style="padding:6px 12px;border-radius:6px;border:2px solid ${v.edif==='pj'?'#BA7517':'#7C3AED'};background:#fff;cursor:pointer;font-size:11px;color:${e.col};font-weight:700;" onclick="editarGVenta(${v.id})">Editar</button>
+          <button style="padding:6px 12px;border-radius:6px;border:2px solid #A32D2D;background:#FCEBEB;cursor:pointer;font-size:11px;color:#A32D2D;font-weight:700;" onclick="eliminarGVenta(${v.id})">Eliminar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function editarGVenta(id){showMsg('Próximamente: editar venta desde historial.');}
+
+function renderGCaja(){
+  const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
+  const cambio=jornadaMovil?jornadaMovil.cambio||0:0;
+  const ef=hist.reduce((s,v)=>s+(v.ef||0),0);
+  const tr=hist.reduce((s,v)=>s+(v.tr||0),0);
+  const cant=hist.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
+  const pj=hist.filter(v=>v.edif==='pj').reduce((s,v)=>s+v.tot,0);
+  const pa=hist.filter(v=>v.edif==='pa').reduce((s,v)=>s+v.tot,0);
+  document.getElementById('gCajaCambio').textContent=gFmt(cambio);
+  document.getElementById('gCajaEf').textContent=gFmt(ef);
+  document.getElementById('gCajaEfC').textContent=gFmt(ef+cambio);
+  document.getElementById('gCajaTr').textContent=gFmt(tr);
+  document.getElementById('gCajaCant').textContent=cant;
+  document.getElementById('gCajaTot').textContent=gFmt(ef+tr);
+  document.getElementById('gCajaPJ').textContent=gFmt(pj);
+  document.getElementById('gCajaPa').textContent=gFmt(pa);
+}
+
+/* ══════════════════════════════════════
+   MÓVIL — PANEL LEONEL/NAGIRA
+══════════════════════════════════════ */
+let movCarritoItems=[];
+
+function renderMovilSection(){
+  renderResumenMovil();
+  renderMovVivo();
+  renderMovCarrito();
+  fillMovRepProd();
+}
+
+function renderResumenMovil(){
+  const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
+  const pj=hist.filter(v=>v.edif==='pj');
+  const pa=hist.filter(v=>v.edif==='pa');
+  const uPJ=pj.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
+  const uPA=pa.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
+  const pPJ=pj.reduce((s,v)=>s+v.tot,0);
+  const pPA=pa.reduce((s,v)=>s+v.tot,0);
+  const el=document.getElementById('movResumen');
+  if(!el)return;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+    <div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#854F0B;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Poder Judicial<br>Uds vendidas</div><div style="font-size:20px;font-weight:600;color:#BA7517;">${uPJ}</div></div>
+    <div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#854F0B;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Poder Judicial<br>Total $</div><div style="font-size:20px;font-weight:600;color:#BA7517;">${gFmt(pPJ)}</div></div>
+    <div style="background:#F3E8FF;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3C3489;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Palacio de Justicia<br>Uds vendidas</div><div style="font-size:20px;font-weight:600;color:#7C3AED;">${uPA}</div></div>
+    <div style="background:#F3E8FF;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3C3489;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Palacio de Justicia<br>Total $</div><div style="font-size:20px;font-weight:600;color:#7C3AED;">${gFmt(pPA)}</div></div>
+    <div style="background:var(--bg2);border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Total uds<br>vendidas</div><div style="font-size:20px;font-weight:600;">${uPJ+uPA}</div></div>
+    <div style="background:#EAF3DE;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3B6D11;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Total $<br>del día</div><div style="font-size:20px;font-weight:600;color:#3B6D11;">${gFmt(pPJ+pPA)}</div></div>
+  </div>`;
+}
+
+function renderMovVivo(){
+  const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
+  const el=document.getElementById('movVivo');if(!el)return;
+  if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin ventas aún.</p>';return;}
+  el.innerHTML=hist.map(v=>{
+    if(v.type==='rep')return `<div style="background:#E1F5EE;border-left:3px solid #1D9E75;padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;font-size:13px;color:#085041;">${v.desc} · ${v.hora}</div>`;
+    const col=v.edif==='pj'?'#FAEEDA':'#F3E8FF';
+    const lbl=v.edif==='pj'?'Poder Judicial':'Palacio de Justicia';
+    const tc=v.edif==='pj'?'#633806':'#26215C';
+    const brd=v.edif==='pj'?'#BA7517':'#7C3AED';
+    return `<div style="background:${col};border-left:3px solid ${brd};padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:6px;"><span style="background:${col};color:${tc};font-size:10px;padding:2px 6px;border-radius:20px;font-weight:600;border:1px solid ${brd};">${lbl}</span><span style="color:${tc};font-size:11px;">${v.hora}</span></div>
+        <span style="color:${tc};font-weight:700;">${gFmt(v.tot)}</span>
+      </div>
+      ${v.its.map(it=>`<div style="color:${tc};font-size:12px;padding:1px 0;">${it.qty}x ${it.n}</div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderMovCarrito(){
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>({pid:p.id,vi,label:`${p.name} ${v.weight||v.name||''} — ${gFmt(v.priceMovil)} móvil`})));
+  const el=document.getElementById('movCarritoWrap');if(!el)return;
+  if(!movCarritoItems.length)movCarritoItems=[{pid:opts[0]?.pid||0,vi:opts[0]?.vi||0,qty:1}];
+  el.innerHTML=movCarritoItems.map((it,i)=>`
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:8px;">
+      <select onchange="movCarritoItems[${i}].pid=+this.value.split('-')[0];movCarritoItems[${i}].vi=+this.value.split('-')[1];" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
+        ${opts.map(o=>`<option value="${o.pid}-${o.vi}" ${it.pid===o.pid&&it.vi===o.vi?'selected':''}>${o.label}</option>`).join('')}
+      </select>
+      <input type="number" min="1" value="${it.qty}" inputmode="numeric" onchange="movCarritoItems[${i}].qty=Math.max(1,+this.value);" style="width:58px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);text-align:center;font-size:14px;background:var(--bg);color:var(--txt);" />
+      <button onclick="movCarritoItems.splice(${i},1);renderMovCarrito();" style="padding:6px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:36px;font-size:16px;">×</button>
+    </div>`).join('');
+}
+
+function fillMovRepProd(){
+  const sel=document.getElementById('movRepProd');if(!sel)return;
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  sel.innerHTML=sorted.flatMap(p=>p.variants.map((v,vi)=>`<option value="${p.id}-${vi}">${p.name} ${v.weight||v.name||''}</option>`)).join('');
+}
+
+async function lanzarJornada(){
+  if(!movCarritoItems.length){showMsg('Agregá al menos un producto.');return;}
+  const cambio=parseFloat(document.getElementById('movCambioI').value)||0;
+  jornadaMovil={
+    items:movCarritoItems.map(it=>({pid:it.pid,vi:it.vi,qty:it.qty,vendido:0})),
+    cambio,fecha:new Date().toISOString().split('T')[0],
+    histVentas:[],activa:true
+  };
+  await saveJornada();
+  movCarritoItems=[];
+  renderMovCarrito();
+  showMsg('✅ Jornada lanzada. Gianella ya puede ver su stock.',true);
+}
+
+async function cerrarJornada(){
+  if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
+  const hist=jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
+  const tot=hist.reduce((s,v)=>s+v.tot,0);
+  const uds=hist.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
+  const sob=jornadaMovil.items.filter(it=>it.qty-(it.vendido||0)>0).map(it=>{
+    const p=products.find(x=>x.id===it.pid);const v=p?p.variants[it.vi]:null;
+    return `${it.qty-(it.vendido||0)}x ${p?p.name:''} ${v?v.weight||v.name||'':''}`;
+  });
+  const rc=document.getElementById('movResumenCierre');
+  rc.style.display='block';
+  rc.innerHTML=`<p style="font-weight:600;margin-bottom:8px;">Resumen final</p>
+    <p style="margin-bottom:4px;">${uds} productos vendidos · Total: <strong>${gFmt(tot)}</strong></p>
+    ${sob.length?`<p style="margin-top:8px;font-size:12px;color:var(--txt2);">Sobrantes para devolver al stock:<br><strong>${sob.join(', ')}</strong></p>`:'<p style="color:#3B6D11;margin-top:6px;">¡Todo vendido!</p>'}
+    <p style="margin-top:10px;font-size:12px;color:var(--txt2);">La próxima semana usá "Armar carrito" para lanzar una nueva jornada.</p>`;
+  jornadaMovil.activa=false;
+  await saveJornada();
+  showMsg('Jornada cerrada.',true);
+  renderResumenMovil();
+}
+
+async function reponerMovil(){
+  const val=document.getElementById('movRepProd').value;
+  const cant=Math.max(1,parseInt(document.getElementById('movRepCant').value)||1);
+  if(!val||!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa o producto inválido.');return;}
+  const pid=+val.split('-')[0];const vi=+val.split('-')[1];
+  const jit=jornadaMovil.items.find(x=>x.pid===pid&&x.vi===vi);
+  const p=products.find(x=>x.id===pid);
+  const vname=p?p.variants[vi].weight||p.variants[vi].name||'':'';
+  if(jit){jit.qty+=cant;}
+  else{jornadaMovil.items.push({pid,vi,qty:cant,vendido:0});}
+  if(!jornadaMovil.histVentas)jornadaMovil.histVentas=[];
+  jornadaMovil.histVentas.unshift({id:Date.now(),type:'rep',desc:`${USERS[cur]?.name||'Leonel'} agregó ${cant}x ${p?p.name:''} ${vname}`,hora:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
+  await saveJornada();
+  document.getElementById('movRepCant').value=1;
+  renderMovVivo();
+  showMsg(`✅ Reposición registrada: ${cant}x ${p?p.name:''} ${vname}`,true);
+}
+
+function renderMovil(){if(cur&&USERS[cur]&&USERS[cur].movil){renderGianellaScreen();}else{renderResumenMovil();renderMovVivo();}}
+
+
 </script>
 </body>
 </html>
