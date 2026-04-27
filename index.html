@@ -594,6 +594,12 @@ a { color: var(--green); }
 ══════════════════════════════════════ */
 .empty{text-align:center;padding:48px 16px;color:var(--txt3);font-size:14px;}
 .frac-badge{display:block;font-size:11px;font-weight:600;color:var(--amber);margin-top:3px;}
+.gTab{transition:color 0.15s,border-color 0.15s;}
+.gTab.on{color:var(--txt)!important;border-bottom:2px solid var(--green)!important;}
+.gPnl.on{display:block!important;}
+.mTab{transition:color 0.15s,border-color 0.15s;}
+.mTab.on{color:var(--txt)!important;border-bottom:2px solid var(--amber)!important;}
+.mPnl{display:none!important;}.mPnl.on{display:block!important;}
 .ei{font-size:42px;margin-bottom:10px;}
 .cr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
 .cr span{flex:1;font-size:14px;color:var(--txt);}
@@ -892,6 +898,14 @@ a { color: var(--green); }
           <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
           <button id="btnCerrarJornada" class="btn danger full" onclick="cerrarJornada()">Cerrar jornada del día</button>
         </div>
+        </div><!-- /mPnlJor -->
+        <!-- Panel Stock Gianella -->
+        <div id="mPnlStk" class="mPnl" style="display:none;">
+          <div class="card">
+            <p style="font-size:15px;font-weight:600;margin-bottom:12px;">📦 Stock actual de Gianella</p>
+            <div id="movStockGianella"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Lanzá una jornada para ver el stock.</p></div>
+          </div>
+        </div><!-- /mPnlStk -->
 
       </div>
     </div>
@@ -1125,8 +1139,9 @@ a { color: var(--green); }
   <!-- Header Gianella -->
   <div style="background:var(--bg);border-bottom:0.5px solid var(--brd);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">
     <div style="font-size:15px;font-weight:600;">🛒 armadito móvil</div>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
       <span id="gSyncBadge" style="font-size:11px;color:var(--green);">● sinc</span>
+      <button id="btnGTheme" style="font-size:18px;padding:4px 8px;border:none;background:none;cursor:pointer;" title="Cambiar tema">🌙</button>
       <button id="btnGLogout" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);cursor:pointer;">Salir</button>
     </div>
   </div>
@@ -1158,8 +1173,8 @@ a { color: var(--green); }
           <thead><tr style="background:var(--bg2);">
             <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th>
             <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#C026D3;border-bottom:0.5px solid var(--brd);">$ móvil</th>
-            <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th>
             <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th>
+            <th style="padding:8px 8px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th>
           </tr></thead>
           <tbody id="gTbStk"></tbody>
         </table>
@@ -1601,6 +1616,12 @@ function renderCatList(){document.getElementById('catList').innerHTML=cats.map((
 ══════════════════════════════════════ */
 document.getElementById('btnLogin').addEventListener('click',doLogin);
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('btnGTheme').addEventListener('click',()=>{
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('btnGTheme').textContent=isDark?'🌙':'☀️';
+  try{localStorage.setItem('armadito_theme',isDark?'light':'dark');}catch(e){}
+});
 document.getElementById('btnGLogout').addEventListener('click',()=>{
   cur=null;try{localStorage.removeItem('armadito_user');}catch(e){}
   document.getElementById('gScreen').style.display='none';
@@ -2011,7 +2032,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
       document.getElementById('loginScreen').style.display='none';
       if(USERS[savedUser]&&USERS[savedUser].movil){
         document.getElementById('gScreen').style.display='block';
+        document.getElementById('loginScreen').style.display='none';
       } else {
+        document.getElementById('loginScreen').classList.remove('active');
         document.getElementById('mainScreen').classList.add('active');
       }
       document.getElementById('saleDate').value=new Date().toISOString().split('T')[0];
@@ -2069,10 +2092,10 @@ function renderGStock(){
     const disp=it.qty-(it.vendido||0);
     const low=disp<=1;
     return `<tr style="${low?'background:rgba(163,45,45,0.07);':''}">
-      <td style="padding:8px 12px;font-size:13px;"><strong>${p.name}</strong><br><span style="font-size:11px;color:var(--txt2);">${v.weight||v.name||''}</span>${low?'<span style="font-size:10px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:20px;font-weight:500;margin-left:5px;">poco</span>':''}</td>
+      <td style="padding:8px 12px;font-size:13px;"><strong>${p.name}</strong>${[v.name,v.weight].filter(x=>x&&x.trim()).length?`<br><span style="font-size:11px;color:var(--txt2);">${[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ')}</span>`:''} ${low?'<span style="font-size:10px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:20px;font-weight:500;margin-left:2px;">poco</span>':''}</td>
       <td style="padding:8px;text-align:center;color:#C026D3;font-weight:600;font-size:13px;">${v.priceMovil?gFmt(v.priceMovil):'-'}</td>
-      <td style="padding:8px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">${it.vendido||0}</td>
       <td style="padding:8px;text-align:center;font-weight:700;color:#3B6D11;font-size:14px;">${disp}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">${it.vendido||0}</td>
     </tr>`;
   }).join('');
 }
@@ -2165,7 +2188,7 @@ async function confirmarGVenta(){
     const v=p.variants[it.vi];
     sub+=(v.priceMovil||0)*it.qty;
     jit.vendido=(jit.vendido||0)+it.qty;
-    its.push({pid:it.pid,vi:it.vi,n:p.name+' '+(v.weight||v.name||''),qty:it.qty,precio:v.priceMovil||0});
+    const varN=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');its.push({pid:it.pid,vi:it.vi,n:p.name+(varN?' '+varN:''),qty:it.qty,precio:v.priceMovil||0});
   }
   const tot=Math.max(0,sub-desc);
   let ef=0,tr=0;
@@ -2252,10 +2275,8 @@ function renderGCaja(){
 let movCarritoItems=[];
 
 function renderMovilSection(){
-  renderResumenMovil();
-  renderMovVivo();
-  renderMovCarrito();
-  fillMovRepProd();
+  showMTab('res',document.getElementById('mTabRes'));
+  renderResumenMovil();renderMovVivo();renderMovCarrito();fillMovRepProd();
 }
 
 function renderResumenMovil(){
@@ -2308,7 +2329,7 @@ function addMovCarritoItem(){
 }
 function renderMovCarrito(){
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid:p.id,vi,label:`${p.name} ${varDesc} — ${gFmt(v.priceMovil)} móvil`};}));
+  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid:p.id,vi,label:`${p.name} ${varDesc} — ${gFmt(v.priceMovil)} móvil`};}));
   const el=document.getElementById('movCarritoWrap');if(!el)return;
   if(!movCarritoItems.length)movCarritoItems=[{pid:opts[0]?.pid||0,vi:opts[0]?.vi||0,qty:1}];
   el.innerHTML=movCarritoItems.map((it,i)=>`
@@ -2324,7 +2345,7 @@ function renderMovCarrito(){
 function fillMovRepProd(){
   const sel=document.getElementById('movRepProd');if(!sel)return;
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  sel.innerHTML=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${p.id}-${vi}">${p.name} ${varDesc}</option>`;})).join('');
+  sel.innerHTML=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${p.id}-${vi}">${p.name} ${varDesc}</option>`;})).join('');
 }
 
 async function lanzarJornada(){
@@ -2384,6 +2405,24 @@ async function reponerMovil(){
   showMsg(`✅ Reposición registrada: ${cant}x ${p?p.name:''} ${vname}`,true);
 }
 
+function showMTab(id,btn){
+  ['res','jor','stk'].forEach(x=>{
+    const p=document.getElementById('mPnl'+x.charAt(0).toUpperCase()+x.slice(1));
+    const t=document.getElementById('mTab'+x.charAt(0).toUpperCase()+x.slice(1));
+    if(p){p.classList.remove('on');p.style.display='none';}
+    if(t)t.classList.remove('on');
+  });
+  const pnl=document.getElementById('mPnl'+id.charAt(0).toUpperCase()+id.slice(1));
+  if(pnl){pnl.style.display='block';pnl.classList.add('on');}
+  if(btn)btn.classList.add('on');
+  if(id==='stk')renderMovStockGianella();
+  if(id==='res'){renderResumenMovil();renderMovVivo();}
+}
+function renderMovStockGianella(){
+  const el=document.getElementById('movStockGianella');if(!el)return;
+  if(!jornadaMovil||!jornadaMovil.items||!jornadaMovil.activa){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">No hay jornada activa.</p>';return;}
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:var(--bg2);"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Total</th></tr></thead><tbody>'+jornadaMovil.items.map(it=>{const p=products.find(x=>x.id===it.pid);if(!p)return '';const v=p.variants[it.vi];const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');const disp=it.qty-(it.vendido||0);const low=disp<=1;return '<tr style="'+(low?'background:rgba(163,45,45,0.07);':'')+'">'+'<td style="padding:7px 10px;"><strong>'+p.name+'</strong>'+(varDesc?'<br><span style="font-size:11px;color:var(--txt2);">'+varDesc+'</span>':'')+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:'+(low?'#A32D2D':'#3B6D11')+';font-size:14px;">'+disp+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">'+(it.vendido||0)+'</td>'+'<td style="padding:7px 6px;text-align:center;color:var(--txt2);font-size:13px;">'+it.qty+'</td></tr>';}).join('')+'</tbody></table>';
+}
 function renderMovil(){if(cur&&USERS[cur]&&USERS[cur].movil){renderGianellaScreen();}else{renderResumenMovil();renderMovVivo();}}
 
 
