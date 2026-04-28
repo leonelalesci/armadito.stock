@@ -891,6 +891,7 @@ a { color: var(--green); }
               <label style="font-size:13px;color:var(--txt2);white-space:nowrap;">Cambio inicial $</label>
               <input type="number" id="movCambioI" value="2000" style="flex:1;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
             </div>
+            <div id="jornadaActivaWarning" style="display:none;background:#FAEEDA;border:0.5px solid #BA7517;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:#633806;"></div>
             <button id="btnLanzarJornada" onclick="lanzarJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;">🚀 Lanzar jornada</button>
           </div>
           <!-- Reponer -->
@@ -907,6 +908,11 @@ a { color: var(--green); }
             <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Guarda el resumen del día y resetea todo para la próxima jornada.</p>
             <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
             <button id="btnCerrarJornada" onclick="cerrarJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);border:0.5px solid var(--red);cursor:pointer;font-size:14px;font-weight:600;">Cerrar jornada del día</button>
+          </div>
+          <!-- Historial de jornadas -->
+          <div class="card" style="margin-top:10px;">
+            <p style="font-size:15px;font-weight:600;margin-bottom:12px;">📅 Jornadas anteriores</p>
+            <div id="movHistJornadas"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Cargando...</p></div>
           </div>
         </div><!-- /mPnlJor -->
 
@@ -2047,15 +2053,19 @@ window.addEventListener('DOMContentLoaded',async()=>{
     if(saved&&USERS[saved]){
       cur=saved;
       document.getElementById('userBadge').textContent=USERS[saved].name;
+      document.getElementById('saleDate').value=new Date().toISOString().split('T')[0];
+      // Cargar datos PRIMERO, luego mostrar pantalla
+      await loadFromDB();
+      setupRealtime();
       if(USERS[saved].movil){
         document.getElementById('loginScreen').style.display='none';
         document.getElementById('gScreen').style.display='block';
+        renderGianellaScreen();
       } else {
         document.getElementById('loginScreen').classList.remove('active');
         document.getElementById('mainScreen').classList.add('active');
+        renderAll();
       }
-      document.getElementById('saleDate').value=new Date().toISOString().split('T')[0];
-      await loadFromDB();setupRealtime();renderAll();
       return;
     }
   }catch(e){}
@@ -2239,21 +2249,23 @@ async function confirmarGVenta(){
 
 async function eliminarGVenta(id){
   if(!jornadaMovil||!jornadaMovil.histVentas)return;
-  const idx=jornadaMovil.histVentas.findIndex(v=>v.id===id);
-  if(idx<0)return;
-  const v=jornadaMovil.histVentas[idx];
-  v.its.forEach(it=>{const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);if(jit)jit.vendido=Math.max(0,(jit.vendido||0)-it.qty);});
-  jornadaMovil.histVentas.splice(idx,1);
-  await saveJornada();
-  renderGStock();renderGHist();renderGCaja();
-  showMsg('Venta eliminada.',true);
+  askConfirm('¿Eliminar esta venta? El stock de la jornada se restaurará.',async()=>{
+    const idx=jornadaMovil.histVentas.findIndex(v=>v.id===id);
+    if(idx<0)return;
+    const v=jornadaMovil.histVentas[idx];
+    v.its.forEach(it=>{const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);if(jit)jit.vendido=Math.max(0,(jit.vendido||0)-it.qty);});
+    jornadaMovil.histVentas.splice(idx,1);
+    await saveJornada();
+    renderGStock();renderGHist();renderGCaja();
+    showMsg('Venta eliminada.',true);
+  });
 }
 
 function renderGHist(){
   const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
   if(!hist.length){document.getElementById('gListHi').innerHTML='<p style="text-align:center;padding:32px;font-size:13px;color:var(--txt2);">Sin actividad aún</p>';return;}
   document.getElementById('gListHi').innerHTML=hist.map(v=>{
-    if(v.type==='rep')return `<div class="gHrep"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#E1F5EE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#085041;font-size:13px;margin-top:4px;">${v.desc}</div></div><span style="color:#085041;font-size:11px;">${v.hora}</span></div></div>`;
+        if(v.type==='rep')return '<div style="background:#E1F5EE;border-left:3px solid #1D9E75;padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#C5EDDE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#085041;font-size:13px;margin-top:4px;font-weight:500;">'+(v.desc||'')+'</div></div><span style="color:#085041;font-size:11px;">'+(v.hora||'')+'</span></div></div>';
     const e=GEDIF[v.edif];
     const hStyle=e.hc==="gHpj"?"background:#FAEEDA;border-left:3px solid #BA7517;":"background:#F3E8FF;border-left:3px solid #7C3AED;";return `<div class="${e.hc}" style="${hStyle}padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
@@ -2279,7 +2291,29 @@ function renderGHist(){
   }).join('');
 }
 
-function editarGVenta(id){showMsg('Próximamente: editar venta desde historial.');}
+function editarGVenta(id){
+  const v=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas.find(x=>x.id===id):null;
+  if(!v)return;
+  // Cargar la venta en el formulario de nueva venta para re-editarla
+  // Primero eliminar la venta actual y cargarla en el form
+  askConfirm('Se abrirá esta venta para editarla. Los productos vuelven al stock de la jornada.',async()=>{
+    // Reintegrar stock
+    v.its.forEach(it=>{const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);if(jit)jit.vendido=Math.max(0,(jit.vendido||0)-it.qty);});
+    // Eliminar del historial
+    const idx=jornadaMovil.histVentas.findIndex(x=>x.id===id);
+    if(idx>=0)jornadaMovil.histVentas.splice(idx,1);
+    await saveJornada();
+    // Precargar en el formulario
+    gEdifSel=v.edif||'pj';
+    gVItems=v.its.map(it=>({pid:it.pid,vi:it.vi,qty:it.qty}));
+    document.getElementById('gVDesc').value=v.desc||0;
+    selEdif(gEdifSel);
+    // Ir a Nueva venta
+    showGTab('nv',document.getElementById('gTabNv'));
+    renderGItems();calcGVenta();
+    showMsg('Venta cargada para editar.',true);
+  });
+}
 
 function renderGCaja(){
   const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
@@ -2359,6 +2393,19 @@ function addMovCarritoItem(){
   renderMovCarrito();
 }
 function renderMovCarrito(){
+  const warn=document.getElementById('jornadaActivaWarning');
+  const btn=document.getElementById('btnLanzarJornada');
+  if(warn&&btn){
+    if(jornadaMovil&&jornadaMovil.activa&&jornadaMovil.fecha){
+      const fd=new Date(jornadaMovil.fecha+'T12:00:00').toLocaleDateString('es-AR');
+      warn.style.display='block';
+      warn.textContent='⚠️ Jornada activa del '+fd+'. Cerrala antes de lanzar una nueva.';
+      btn.style.opacity='0.4';btn.style.pointerEvents='none';
+    } else {
+      warn.style.display='none';
+      btn.style.opacity='1';btn.style.pointerEvents='auto';
+    }
+  }
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
   const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil!==undefined&&v.priceMovil!==null&&v.priceMovil!==''&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid:p.id,vi,label:`${p.name} ${varDesc} — ${gFmt(v.priceMovil)} móvil`};}));
   const el=document.getElementById('movCarritoWrap');if(!el)return;
@@ -2478,20 +2525,43 @@ function showMTab(id,btn){
   ['res','jor','stk'].forEach(x=>{
     const p=document.getElementById('mPnl'+x.charAt(0).toUpperCase()+x.slice(1));
     const t=document.getElementById('mTab'+x.charAt(0).toUpperCase()+x.slice(1));
-    if(p){p.classList.remove('on');p.style.display='none';}
-    if(t)t.classList.remove('on');
+    if(p){p.style.display='none';}
+    if(t){t.style.color='var(--txt2)';t.style.borderBottom='2px solid transparent';t.style.fontWeight='500';}
   });
   const pnl=document.getElementById('mPnl'+id.charAt(0).toUpperCase()+id.slice(1));
-  if(pnl){pnl.style.display='block';pnl.classList.add('on');}
-  if(btn)btn.classList.add('on');
+  if(pnl)pnl.style.display='block';
+  if(btn){btn.style.color='var(--amber)';btn.style.borderBottom='2px solid var(--amber)';btn.style.fontWeight='700';}
   if(id==='stk')renderMovStockGianella();
   if(id==='res'){renderResumenMovil();renderMovVivo();}
-  if(id==='jor')renderMovRepItems();
+  if(id==='jor'){renderMovCarrito();renderMovRepItems();renderHistJornadas();}
 }
 function renderMovStockGianella(){
   const el=document.getElementById('movStockGianella');if(!el)return;
   if(!jornadaMovil||!jornadaMovil.items||!jornadaMovil.activa){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">No hay jornada activa.</p>';return;}
   el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:var(--bg2);"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Total</th></tr></thead><tbody>'+jornadaMovil.items.map(it=>{const p=products.find(x=>x.id===it.pid);if(!p)return '';const v=p.variants[it.vi];const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');const disp=it.qty-(it.vendido||0);const low=disp<=1;return '<tr style="'+(low?'background:rgba(163,45,45,0.07);':'')+'">'+'<td style="padding:7px 10px;"><strong>'+p.name+'</strong>'+(varDesc?'<br><span style="font-size:11px;color:var(--txt2);">'+varDesc+'</span>':'')+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:'+(low?'#A32D2D':'#3B6D11')+';font-size:14px;">'+disp+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">'+(it.vendido||0)+'</td>'+'<td style="padding:7px 6px;text-align:center;color:var(--txt2);font-size:13px;">'+it.qty+'</td></tr>';}).join('')+'</tbody></table>';
+}
+async function renderHistJornadas(){
+  const el=document.getElementById('movHistJornadas');if(!el)return;
+  try{
+    const{data}=await db.from('meta').select('*').eq('key','histJornadas').single();
+    let hist=[];try{hist=JSON.parse(data?.value||'[]');}catch(e){}
+    if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin jornadas anteriores.</p>';return;}
+    el.innerHTML=hist.map((j,i)=>`
+      <div style="border:0.5px solid var(--brd);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="toggleJornadaDetalle(${i})">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;font-size:14px;">${j.fecha?new Date(j.fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):'Sin fecha'}</span>
+          <span style="font-weight:700;color:#3B6D11;">${gFmt(j.tot||0)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:3px;">${j.uds||0} productos vendidos${j.sob&&j.sob.length?' · Sobrantes: '+j.sob.join(', '):''}</div>
+        <div id="jornadaDetalle_${i}" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--brd);">
+          ${(j.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>${it.nombre}</span><span style="color:var(--txt2);">${it.vendido||0}/${it.qty}</span></div>`).join('')}
+        </div>
+      </div>`).join('');
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Error al cargar.</p>';}
+}
+function toggleJornadaDetalle(i){
+  const el=document.getElementById('jornadaDetalle_'+i);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
 function renderMovil(){if(cur&&USERS[cur]&&USERS[cur].movil){renderGianellaScreen();}else{renderResumenMovil();renderMovVivo();}}
 
