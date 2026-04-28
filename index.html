@@ -863,44 +863,55 @@ a { color: var(--green); }
 
     <!-- MÓVIL -->
     <div id="sec-movil" class="sec">
+      <!-- Subtabs Móvil -->
+      <div style="display:flex;gap:0;border-bottom:0.5px solid var(--brd);margin-bottom:14px;">
+        <button id="mTabRes" onclick="showMTab('res',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--amber);cursor:pointer;border-bottom:2px solid var(--amber);">📊 Resumen</button>
+        <button id="mTabJor" onclick="showMTab('jor',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">🛒 Jornada</button>
+        <button id="mTabStk" onclick="showMTab('stk',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">📦 Stock</button>
+      </div>
       <div id="movil-leonel">
-        <!-- Ventas en vivo -->
-        <div class="card" style="margin-bottom:10px;">
-          <p style="font-size:15px;font-weight:600;margin-bottom:12px;">👁 Ventas en vivo</p>
-          <div id="movVivo"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin jornada activa o sin ventas aún.</p></div>
-        </div>
-        <!-- Resumen -->
-        <div id="movResumen" style="margin-bottom:12px;"></div>
-        <!-- Reponer -->
-        <div class="card" style="margin-bottom:10px;">
-          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">📦 Reponer stock</p>
-          <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Queda registrado en el historial de Gianella.</p>
-          <div class="fg"><label>Producto / variante</label><select id="movRepProd" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;-webkit-appearance:none;"></select></div>
-          <div class="fg"><label>Cantidad</label><input type="number" id="movRepCant" value="1" min="1" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" /></div>
-          <button id="btnReponer" class="btn full" style="background:#E1F5EE;color:#085041;border-color:#1D9E75;" onclick="reponerMovil()">📦 Confirmar reposición</button>
-        </div>
-        <!-- Armar carrito -->
-        <div class="card" style="margin-bottom:10px;">
-          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">🚀 Armar carrito</p>
-          <p style="font-size:13px;color:var(--txt2);margin-bottom:14px;">Los productos toman precio móvil del sistema. No descuenta del stock.</p>
-          <div id="movCarritoWrap"></div>
-          <button id="btnAddMovCarrito" class="btn full" style="margin-bottom:14px;" onclick="addMovCarritoItem()">+ Agregar producto</button>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:12px;border-top:0.5px solid var(--brd);">
-            <label style="font-size:13px;color:var(--txt2);white-space:nowrap;">Cambio inicial $</label>
-            <input type="number" id="movCambioI" value="2000" style="flex:1;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+        <!-- Panel Resumen -->
+        <div id="mPnlRes" style="display:block;">
+          <div class="card" style="margin-bottom:10px;">
+            <p style="font-size:15px;font-weight:600;margin-bottom:12px;">👁 Ventas en vivo</p>
+            <div id="movVivo"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin jornada activa o sin ventas aún.</p></div>
           </div>
-          <button id="btnLanzarJornada" class="btn primary full" onclick="lanzarJornada()">🚀 Lanzar jornada</button>
-        </div>
-        <!-- Cerrar jornada -->
-        <div class="card" style="border-color:var(--red);">
-          <p style="font-size:15px;font-weight:600;margin-bottom:4px;">Cerrar jornada</p>
-          <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Muestra el resumen final con sobrantes.</p>
-          <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
-          <button id="btnCerrarJornada" class="btn danger full" onclick="cerrarJornada()">Cerrar jornada del día</button>
-        </div>
+          <div id="movResumen" style="margin-bottom:12px;"></div>
+        </div><!-- /mPnlRes -->
+
+        <!-- Panel Jornada -->
+        <div id="mPnlJor" style="display:none;">
+          <!-- Armar carrito -->
+          <div class="card" style="margin-bottom:10px;">
+            <p style="font-size:15px;font-weight:600;margin-bottom:4px;">🚀 Armar carrito</p>
+            <p style="font-size:13px;color:var(--txt2);margin-bottom:14px;">Productos y precios del sistema principal. No descuenta del stock.</p>
+            <div id="movCarritoWrap"></div>
+            <button id="btnAddMovCarrito" onclick="addMovCarritoItem()" style="width:100%;margin-bottom:14px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;cursor:pointer;">+ Agregar producto</button>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:12px;border-top:0.5px solid var(--brd);">
+              <label style="font-size:13px;color:var(--txt2);white-space:nowrap;">Cambio inicial $</label>
+              <input type="number" id="movCambioI" value="2000" style="flex:1;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+            </div>
+            <button id="btnLanzarJornada" onclick="lanzarJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;">🚀 Lanzar jornada</button>
+          </div>
+          <!-- Reponer -->
+          <div class="card" style="margin-bottom:10px;">
+            <p style="font-size:15px;font-weight:600;margin-bottom:4px;">📦 Reponer stock</p>
+            <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Podés agregar varios productos. Queda registrado en el historial.</p>
+            <div id="movRepItems"></div>
+            <button onclick="addMovRepItem()" style="width:100%;margin-bottom:10px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;cursor:pointer;">+ Agregar otro</button>
+            <button id="btnReponer" onclick="reponerMovil()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:#E1F5EE;color:#085041;border:0.5px solid #1D9E75;cursor:pointer;font-size:14px;font-weight:600;">📦 Confirmar reposición</button>
+          </div>
+          <!-- Cerrar jornada -->
+          <div class="card" style="border-color:var(--red);">
+            <p style="font-size:15px;font-weight:600;margin-bottom:4px;">Cerrar jornada</p>
+            <p style="font-size:13px;color:var(--txt2);margin-bottom:12px;">Guarda el resumen del día y resetea todo para la próxima jornada.</p>
+            <div id="movResumenCierre" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;font-size:13px;"></div>
+            <button id="btnCerrarJornada" onclick="cerrarJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);border:0.5px solid var(--red);cursor:pointer;font-size:14px;font-weight:600;">Cerrar jornada del día</button>
+          </div>
         </div><!-- /mPnlJor -->
+
         <!-- Panel Stock Gianella -->
-        <div id="mPnlStk" class="mPnl" style="display:none;">
+        <div id="mPnlStk" style="display:none;">
           <div class="card">
             <p style="font-size:15px;font-weight:600;margin-bottom:12px;">📦 Stock actual de Gianella</p>
             <div id="movStockGianella"><p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Lanzá una jornada para ver el stock.</p></div>
@@ -909,7 +920,6 @@ a { color: var(--green); }
 
       </div>
     </div>
-
     <!-- FRACCIONAR -->
     <div id="sec-fraccionar" class="sec">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -1376,7 +1386,15 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'cats'},async()=>{const{data}=await db.from('cats').select('*').eq('id',1).single();if(data)cats=data.data;fillCatF();renderProds();})
     .on('postgres_changes',{event:'*',schema:'public',table:'gastos'},async()=>{const{data}=await db.from('gastos').select('*');if(data)gastos=data.map(r=>r.data);renderGastos();})
     .on('postgres_changes',{event:'*',schema:'public',table:'fraccionar'},async()=>{const{data}=await db.from('fraccionar').select('*');if(data)fracciones=data.map(r=>r.data);renderFraccionar();renderStock();})
-    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();if(jd)jornadaMovil=jd.data;if(cur&&USERS[cur]&&USERS[cur].movil){renderGianellaScreen();}else{renderResumenMovil();renderMovVivo();}})
+    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();if(jd)jornadaMovil=jd.data;
+      if(cur&&USERS[cur]&&USERS[cur].movil){
+        renderGianellaScreen();
+      } else {
+        renderResumenMovil();renderMovVivo();
+        // Actualizar subtab stock si está activo
+        const stkPnl=document.getElementById('mPnlStk');
+        if(stkPnl&&stkPnl.style.display!=='none')renderMovStockGianella();
+      }})
     .subscribe();
 }
 
@@ -2029,10 +2047,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
     if(saved&&USERS[saved]){
       cur=saved;
       document.getElementById('userBadge').textContent=USERS[saved].name;
-      document.getElementById('loginScreen').style.display='none';
-      if(USERS[savedUser]&&USERS[savedUser].movil){
-        document.getElementById('gScreen').style.display='block';
+      if(USERS[saved].movil){
         document.getElementById('loginScreen').style.display='none';
+        document.getElementById('gScreen').style.display='block';
       } else {
         document.getElementById('loginScreen').classList.remove('active');
         document.getElementById('mainScreen').classList.add('active');
@@ -2148,10 +2165,10 @@ function renderGItems(){
   document.getElementById('gVentaItems').innerHTML=gVItems.map((it,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--brd);">
       <select onchange="gVItems[${i}].pid=+this.value.split('-')[0];gVItems[${i}].vi=+this.value.split('-')[1];calcGVenta();" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
-        ${jornadaMovil.items.map(jit=>{const p=products.find(x=>x.id===jit.pid);if(!p)return '';const v=p.variants[jit.vi];const disp=jit.qty-(jit.vendido||0);const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${jit.pid}-${jit.vi}" ${it.pid===jit.pid&&it.vi===jit.vi?'selected':''}>${p.name} ${varDesc} — ${v.priceMovil?gFmt(v.priceMovil):'-'} (${disp} disp.)</option>`;}).join('')}
+        '<option value="" disabled selected>— Elegir producto —</option>'+jornadaMovil.items.map(jit=>{const p=products.find(x=>x.id===jit.pid);if(!p)return '';const v=p.variants[jit.vi];const disp=jit.qty-(jit.vendido||0);const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return '<option value="'+jit.pid+'-'+jit.vi+'">'+(p.name+' '+varDesc).trim()+' — '+(v.priceMovil?gFmt(v.priceMovil):'-')+' ('+disp+' disp.)</option>';}).join('')}
       </select>
       <input type="number" min="1" value="${it.qty}" inputmode="numeric" onchange="gVItems[${i}].qty=Math.max(1,+this.value);calcGVenta();" style="width:54px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);text-align:center;font-size:14px;background:var(--bg);color:var(--txt);" />
-      <button onclick="gVItems.splice(${i},1);if(!gVItems.length)gVItems=[{pid:jornadaMovil.items[0]?.pid||0,vi:jornadaMovil.items[0]?.vi||0,qty:1}];renderGItems();" style="padding:8px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:38px;font-size:16px;">×</button>
+      <button onclick="gVItems.splice(${i},1);if(!gVItems.length)gVItems=[{pid:null,vi:null,qty:1}];renderGItems();" style="padding:8px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:38px;font-size:16px;">×</button>
     </div>`).join('');
   calcGVenta();
 }
@@ -2198,7 +2215,7 @@ async function confirmarGVenta(){
   if(!jornadaMovil.histVentas)jornadaMovil.histVentas=[];
   jornadaMovil.histVentas.unshift({id:Date.now(),type:'v',its,tot,ef,tr,desc,edif:gEdifSel,hora});
   await saveJornada();
-  gVItems=[{pid:jornadaMovil.items[0]?.pid||0,vi:jornadaMovil.items[0]?.vi||0,qty:1}];
+  gVItems=[{pid:null,vi:null,qty:1}];
   document.getElementById('gVDesc').value=0;
   document.getElementById('gVNota').value='';
   if(gMixtoOn){document.getElementById('gMixEf').value=0;document.getElementById('gMixTr').value=0;toggleGMixto();}
@@ -2225,7 +2242,7 @@ function renderGHist(){
   document.getElementById('gListHi').innerHTML=hist.map(v=>{
     if(v.type==='rep')return `<div class="gHrep"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#E1F5EE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#085041;font-size:13px;margin-top:4px;">${v.desc}</div></div><span style="color:#085041;font-size:11px;">${v.hora}</span></div></div>`;
     const e=GEDIF[v.edif];
-    return `<div class="${e.hc}">
+    const hStyle=e.hc==="gHpj"?"background:#FAEEDA;border-left:3px solid #BA7517;":"background:#F3E8FF;border-left:3px solid #7C3AED;";return `<div class="${e.hc}" style="${hStyle}padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span style="background:${v.edif==='pj'?'#FAEEDA':'#F3E8FF'};color:${e.col};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">${e.lbl}</span>
@@ -2276,7 +2293,8 @@ let movCarritoItems=[];
 
 function renderMovilSection(){
   showMTab('res',document.getElementById('mTabRes'));
-  renderResumenMovil();renderMovVivo();renderMovCarrito();fillMovRepProd();
+  renderResumenMovil();renderMovVivo();renderMovCarrito();
+  movRepItems=[{pid:null,vi:null,qty:1}];
 }
 
 function renderResumenMovil(){
@@ -2329,7 +2347,7 @@ function addMovCarritoItem(){
 }
 function renderMovCarrito(){
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid:p.id,vi,label:`${p.name} ${varDesc} — ${gFmt(v.priceMovil)} móvil`};}));
+  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil!==undefined&&v.priceMovil!==null&&v.priceMovil!==''&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid:p.id,vi,label:`${p.name} ${varDesc} — ${gFmt(v.priceMovil)} móvil`};}));
   const el=document.getElementById('movCarritoWrap');if(!el)return;
   if(!movCarritoItems.length)movCarritoItems=[{pid:opts[0]?.pid||0,vi:opts[0]?.vi||0,qty:1}];
   el.innerHTML=movCarritoItems.map((it,i)=>`
@@ -2345,7 +2363,7 @@ function renderMovCarrito(){
 function fillMovRepProd(){
   const sel=document.getElementById('movRepProd');if(!sel)return;
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  sel.innerHTML=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${p.id}-${vi}">${p.name} ${varDesc}</option>`;})).join('');
+  sel.innerHTML=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil!==undefined&&v.priceMovil!==null&&v.priceMovil!==''&&+v.priceMovil>0).map(({v,vi})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return `<option value="${p.id}-${vi}">${p.name} ${varDesc}</option>`;})).join('');
 }
 
 async function lanzarJornada(){
@@ -2368,41 +2386,79 @@ async function cerrarJornada(){
   if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
   const pw=prompt('Ingresá tu contraseña para cerrar la jornada:');
   if(!pw||!cur||pw!==USERS[cur].pass){showMsg('Contraseña incorrecta.');return;}
-  const hist=jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
-  const tot=hist.reduce((s,v)=>s+v.tot,0);
-  const uds=hist.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
+  const vs=jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v'):[];
+  const tot=vs.reduce((s,v)=>s+v.tot,0);
+  const uds=vs.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
   const sob=jornadaMovil.items.filter(it=>it.qty-(it.vendido||0)>0).map(it=>{
     const p=products.find(x=>x.id===it.pid);const v=p?p.variants[it.vi]:null;
-    return `${it.qty-(it.vendido||0)}x ${p?p.name:''} ${v?v.weight||v.name||'':''}`;
+    return `${it.qty-(it.vendido||0)}x ${p?p.name:''} ${v?[v.name,v.weight].filter(x=>x&&x.trim()).join(' – '):''}`;
   });
+  // Guardar en historial de jornadas
+  try{
+    const{data:hj}=await db.from('meta').select('*').eq('key','histJornadas').single();
+    let hist=[];try{hist=JSON.parse(hj?.value||'[]');}catch(e){}
+    hist.unshift({fecha:jornadaMovil.fecha,uds,tot,sob});
+    await db.from('meta').upsert({key:'histJornadas',value:JSON.stringify(hist.slice(0,20))});
+  }catch(e){}
+  // Mostrar resumen
   const rc=document.getElementById('movResumenCierre');
   rc.style.display='block';
-  rc.innerHTML=`<p style="font-weight:600;margin-bottom:8px;">Resumen final</p>
+  rc.innerHTML=`<p style="font-weight:600;margin-bottom:8px;">✅ Jornada cerrada</p>
     <p style="margin-bottom:4px;">${uds} productos vendidos · Total: <strong>${gFmt(tot)}</strong></p>
-    ${sob.length?`<p style="margin-top:8px;font-size:12px;color:var(--txt2);">Sobrantes para devolver al stock:<br><strong>${sob.join(', ')}</strong></p>`:'<p style="color:#3B6D11;margin-top:6px;">¡Todo vendido!</p>'}
-    <p style="margin-top:10px;font-size:12px;color:var(--txt2);">La próxima semana usá "Armar carrito" para lanzar una nueva jornada.</p>`;
-  jornadaMovil.activa=false;
+    ${sob.length?`<p style="margin-top:8px;font-size:12px;color:var(--txt2);">Sobrantes: <strong>${sob.join(', ')}</strong></p>`:'<p style="color:#3B6D11;font-size:12px;margin-top:6px;">¡Todo vendido!</p>'}
+    <p style="margin-top:10px;font-size:12px;color:var(--txt2);">Usá "Armar carrito" para la próxima jornada.</p>`;
+  // Resetear jornada completamente
+  jornadaMovil={activa:false,items:[],histVentas:[],fecha:null,cambio:0};
   await saveJornada();
-  showMsg('Jornada cerrada.',true);
-  renderResumenMovil();
+  showMsg('✅ Jornada cerrada y guardada.',true);
+  renderResumenMovil();renderMovVivo();
+  return; // fin de función original
+  // (código viejo eliminado)
 }
 
+let movRepItems=[{pid:null,vi:null,qty:1}];
+function addMovRepItem(){
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({pid:p.id,vi})).filter(({v})=>v&&v.priceMovil&&+v.priceMovil>0));
+  if(!opts.length)return;
+  movRepItems.push({pid:null,vi:null,qty:1});
+  renderMovRepItems();
+}
+function renderMovRepItems(){
+  const el=document.getElementById('movRepItems');if(!el)return;
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({pid:p.id,vi,v})).filter(({v})=>v&&v.priceMovil&&+v.priceMovil>0).map(({pid,vi,v})=>{const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return {pid,vi,label:products.find(x=>x.id===pid)?.name+' '+varDesc};}));
+  el.innerHTML=movRepItems.map((it,i)=>`
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:8px;">
+      <select onchange="movRepItems[${i}].pid=+this.value.split('-')[0];movRepItems[${i}].vi=+this.value.split('-')[1];" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
+        <option value="" disabled ${it.pid===null?'selected':''}>— Elegir —</option>
+        ${opts.map(o=>`<option value="${o.pid}-${o.vi}">${o.label}</option>`).join('')}
+      </select>
+      <input type="number" min="1" value="${it.qty||1}" inputmode="numeric" onchange="movRepItems[${i}].qty=Math.max(1,+this.value);" style="width:58px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);text-align:center;font-size:14px;background:var(--bg);color:var(--txt);" />
+      <button onclick="movRepItems.splice(${i},1);if(!movRepItems.length)movRepItems=[{pid:null,vi:null,qty:1}];renderMovRepItems();" style="padding:6px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:36px;font-size:16px;">×</button>
+    </div>`).join('');
+}
 async function reponerMovil(){
-  const val=document.getElementById('movRepProd').value;
-  const cant=Math.max(1,parseInt(document.getElementById('movRepCant').value)||1);
-  if(!val||!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa o producto inválido.');return;}
-  const pid=+val.split('-')[0];const vi=+val.split('-')[1];
-  const jit=jornadaMovil.items.find(x=>x.pid===pid&&x.vi===vi);
-  const p=products.find(x=>x.id===pid);
-  const vname=p?p.variants[vi].weight||p.variants[vi].name||'':'';
-  if(jit){jit.qty+=cant;}
-  else{jornadaMovil.items.push({pid,vi,qty:cant,vendido:0});}
+  if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
+  const validos=movRepItems.filter(it=>it.pid!==null&&it.vi!==null&&it.qty>0);
+  if(!validos.length){showMsg('Elegí al menos un producto.');return;}
   if(!jornadaMovil.histVentas)jornadaMovil.histVentas=[];
-  jornadaMovil.histVentas.unshift({id:Date.now(),type:'rep',desc:`${USERS[cur]?.name||'Leonel'} agregó ${cant}x ${p?p.name:''} ${vname}`,hora:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
+  const hora=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const descripciones=[];
+  for(const it of validos){
+    const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);
+    const p=products.find(x=>x.id===it.pid);
+    const v=p?p.variants[it.vi]:null;
+    const varDesc=v?[v.name,v.weight].filter(x=>x&&x.trim()).join(' – '):'';
+    if(jit){jit.qty+=it.qty;}else{jornadaMovil.items.push({pid:it.pid,vi:it.vi,qty:it.qty,vendido:0});}
+    descripciones.push(`${it.qty}x ${p?p.name:''} ${varDesc}`);
+  }
+  const desc=`${USERS[cur]?.name||'Leonel'} agregó: ${descripciones.join(', ')}`;
+  jornadaMovil.histVentas.unshift({id:Date.now(),type:'rep',desc,hora});
   await saveJornada();
-  document.getElementById('movRepCant').value=1;
-  renderMovVivo();
-  showMsg(`✅ Reposición registrada: ${cant}x ${p?p.name:''} ${vname}`,true);
+  movRepItems=[{pid:null,vi:null,qty:1}];
+  renderMovRepItems();renderMovVivo();
+  showMsg('✅ Reposición registrada.',true);
 }
 
 function showMTab(id,btn){
@@ -2417,6 +2473,7 @@ function showMTab(id,btn){
   if(btn)btn.classList.add('on');
   if(id==='stk')renderMovStockGianella();
   if(id==='res'){renderResumenMovil();renderMovVivo();}
+  if(id==='jor')renderMovRepItems();
 }
 function renderMovStockGianella(){
   const el=document.getElementById('movStockGianella');if(!el)return;
