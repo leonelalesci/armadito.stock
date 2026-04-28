@@ -2162,10 +2162,23 @@ function chkMixto(){
 
 function renderGItems(){
   if(!jornadaMovil||!jornadaMovil.items){document.getElementById('gVentaItems').innerHTML='<p style="color:var(--txt2);font-size:13px;padding:8px 0;">Sin jornada activa</p>';return;}
+  // Construir opciones del select
+  function buildJOpts(selPid,selVi){
+    let o='<option value="" disabled'+(selPid===null?' selected':'')+'>— Elegir producto —</option>';
+    jornadaMovil.items.forEach(jit=>{
+      const p=products.find(x=>x.id===jit.pid);if(!p)return;
+      const v=p.variants[jit.vi];
+      const disp=jit.qty-(jit.vendido||0);
+      const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');
+      const sel=(selPid===jit.pid&&selVi===jit.vi)?' selected':'';
+      o+='<option value="'+jit.pid+'-'+jit.vi+'"'+sel+'>'+(p.name+(varDesc?' '+varDesc:'')).trim()+' — '+(v.priceMovil?gFmt(v.priceMovil):'-')+' ('+disp+' disp.)</option>';
+    });
+    return o;
+  }
   document.getElementById('gVentaItems').innerHTML=gVItems.map((it,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--brd);">
       <select onchange="gVItems[${i}].pid=+this.value.split('-')[0];gVItems[${i}].vi=+this.value.split('-')[1];calcGVenta();" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
-        '<option value="" disabled selected>— Elegir producto —</option>'+jornadaMovil.items.map(jit=>{const p=products.find(x=>x.id===jit.pid);if(!p)return '';const v=p.variants[jit.vi];const disp=jit.qty-(jit.vendido||0);const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');return '<option value="'+jit.pid+'-'+jit.vi+'">'+(p.name+' '+varDesc).trim()+' — '+(v.priceMovil?gFmt(v.priceMovil):'-')+' ('+disp+' disp.)</option>';}).join('')}
+        ${buildJOpts(it.pid,it.vi)}
       </select>
       <input type="number" min="1" value="${it.qty}" inputmode="numeric" onchange="gVItems[${i}].qty=Math.max(1,+this.value);calcGVenta();" style="width:54px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);text-align:center;font-size:14px;background:var(--bg);color:var(--txt);" />
       <button onclick="gVItems.splice(${i},1);if(!gVItems.length)gVItems=[{pid:null,vi:null,qty:1}];renderGItems();" style="padding:8px 10px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;min-height:38px;font-size:16px;">×</button>
