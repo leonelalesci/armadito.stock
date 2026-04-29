@@ -2455,7 +2455,23 @@ async function cerrarJornada(){
   try{
     const{data:hj}=await db.from('meta').select('*').eq('key','histJornadas').single();
     let hist=[];try{hist=JSON.parse(hj?.value||'[]');}catch(e){}
-    hist.unshift({fecha:jornadaMovil.fecha,uds,tot,sob});
+    const ef=vs.reduce((s,v)=>s+(v.ef||0),0);
+    const tr=vs.reduce((s,v)=>s+(v.tr||0),0);
+    const pjVs=vs.filter(v=>v.edif==='pj');
+    const paVs=vs.filter(v=>v.edif==='pa');
+    hist.unshift({
+      fecha:jornadaMovil.fecha,uds,tot,sob,
+      cambio:jornadaMovil.cambio||0,ef,tr,
+      totPJ:pjVs.reduce((s,v)=>s+v.tot,0),
+      totPA:paVs.reduce((s,v)=>s+v.tot,0),
+      udsPJ:pjVs.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0),
+      udsPA:paVs.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0),
+      items:jornadaMovil.items.map(it=>{
+        const p=products.find(x=>x.id===it.pid);const v=p?p.variants[it.vi]:null;
+        const varDesc=v?[v.name,v.weight].filter(x=>x&&x.trim()).join(' – '):'';
+        return {nombre:(p?p.name:'')+' '+varDesc,qty:it.qty,vendido:it.vendido||0};
+      })
+    });
     await db.from('meta').upsert({key:'histJornadas',value:JSON.stringify(hist.slice(0,20))});
   }catch(e){}
   // Mostrar resumen
@@ -2544,18 +2560,43 @@ async function renderHistJornadas(){
     const{data}=await db.from('meta').select('*').eq('key','histJornadas').single();
     let hist=[];try{hist=JSON.parse(data?.value||'[]');}catch(e){}
     if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin jornadas anteriores.</p>';return;}
-    el.innerHTML=hist.map((j,i)=>`
-      <div style="border:0.5px solid var(--brd);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="toggleJornadaDetalle(${i})">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:600;font-size:14px;">${j.fecha?new Date(j.fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):'Sin fecha'}</span>
-          <span style="font-weight:700;color:#3B6D11;">${gFmt(j.tot||0)}</span>
-        </div>
-        <div style="font-size:12px;color:var(--txt2);margin-top:3px;">${j.uds||0} productos vendidos${j.sob&&j.sob.length?' · Sobrantes: '+j.sob.join(', '):''}</div>
-        <div id="jornadaDetalle_${i}" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--brd);">
-          ${(j.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>${it.nombre}</span><span style="color:var(--txt2);">${it.vendido||0}/${it.qty}</span></div>`).join('')}
-        </div>
-      </div>`).join('');
+    el.innerHTML=hist.map((j,i)=>{
+      const fecha=j.fecha?new Date(j.fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):'Sin fecha';
+      const vendidos=(j.items||[]).filter(it=>it.vendido>0);
+      const sobrantes=(j.items||[]).filter(it=>(it.qty-(it.vendido||0))>0);
+      return '<div style="border:0.5px solid var(--brd);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'
+          +'<div><div style="font-weight:600;font-size:14px;">'+fecha+'</div>'
+          +'<div style="font-size:12px;color:var(--txt2);margin-top:2px;">'+(j.uds||0)+' uds · Cambio: '+gFmt(j.cambio||0)+'</div></div>'
+          +'<div style="display:flex;align-items:center;gap:8px;">'
+            +'<span style="font-weight:700;color:#3B6D11;font-size:15px;">'+gFmt(j.tot||0)+'</span>'
+            +'<button onclick="eliminarJornada('+i+')" style="padding:4px 8px;border:0.5px solid var(--red);border-radius:6px;background:var(--bg);color:var(--red);cursor:pointer;font-size:11px;">✕</button>'
+          +'</div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'
+          +'<div style="background:#FAEEDA;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#854F0B;font-weight:600;">PODER JUDICIAL</div><div style="font-size:13px;color:#BA7517;font-weight:700;">'+gFmt(j.totPJ||0)+' · '+(j.udsPJ||0)+' uds</div></div>'
+          +'<div style="background:#F3E8FF;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#3C3489;font-weight:600;">PALACIO</div><div style="font-size:13px;color:#7C3AED;font-weight:700;">'+gFmt(j.totPA||0)+' · '+(j.udsPA||0)+' uds</div></div>'
+          +'<div style="background:#E6F1FB;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#0C447C;font-weight:600;">EFECTIVO</div><div style="font-size:13px;color:#185FA5;font-weight:700;">'+gFmt(j.ef||0)+'</div></div>'
+          +'<div style="background:#E1F5EE;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#085041;font-weight:600;">TRANSFERENCIA</div><div style="font-size:13px;color:#1D9E75;font-weight:700;">'+gFmt(j.tr||0)+'</div></div>'
+        +'</div>'
+        +'<div id="jornadaDetalle_'+i+'" style="display:none;padding-top:8px;border-top:0.5px solid var(--brd);">'
+          +(vendidos.length?'<p style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:4px;">VENDIDO</p>'+vendidos.map(it=>'<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>'+it.nombre+'</span><span style="color:#3B6D11;font-weight:600;">'+it.vendido+'</span></div>').join(''):'')
+          +(sobrantes.length?'<p style="font-size:11px;font-weight:600;color:var(--txt2);margin:8px 0 4px;">SOBRANTE</p>'+sobrantes.map(it=>'<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>'+it.nombre+'</span><span style="color:#A32D2D;font-weight:600;">'+(it.qty-(it.vendido||0))+'</span></div>').join(''):'')
+        +'</div>'
+        +'<button onclick="toggleJornadaDetalle('+i+')" style="width:100%;margin-top:8px;padding:5px;border:0.5px solid var(--brd);border-radius:6px;background:none;font-size:11px;color:var(--txt2);cursor:pointer;">Ver detalle ▾</button>'
+      +'</div>';
+    }).join('');
   }catch(e){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Error al cargar.</p>';}
+}
+async function eliminarJornada(i){
+  if(!confirm('¿Eliminar este registro de jornada?'))return;
+  try{
+    const{data}=await db.from('meta').select('*').eq('key','histJornadas').single();
+    let hist=[];try{hist=JSON.parse(data?.value||'[]');}catch(e){}
+    hist.splice(i,1);
+    await db.from('meta').upsert({key:'histJornadas',value:JSON.stringify(hist)});
+    renderHistJornadas();showMsg('Jornada eliminada.',true);
+  }catch(e){showMsg('Error al eliminar.');}
 }
 function toggleJornadaDetalle(i){
   const el=document.getElementById('jornadaDetalle_'+i);
