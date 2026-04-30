@@ -866,8 +866,8 @@ a { color: var(--green); }
       <!-- Subtabs Móvil -->
       <div style="display:flex;gap:0;border-bottom:0.5px solid var(--brd);margin-bottom:14px;">
         <button id="mTabRes" onclick="showMTab('res',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--amber);cursor:pointer;border-bottom:2px solid var(--amber);">📊 Resumen</button>
-        <button id="mTabJor" onclick="showMTab('jor',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">🛒 Jornada</button>
         <button id="mTabStk" onclick="showMTab('stk',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">📦 Stock</button>
+        <button id="mTabJor" onclick="showMTab('jor',this)" style="flex:1;padding:11px 4px;border:none;background:none;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;">🛒 Jornada</button>
       </div>
       <div id="movil-leonel">
         <!-- Panel Resumen -->
@@ -2105,7 +2105,7 @@ function showGTab(id,btn){
   if(pnl){pnl.style.display='block';pnl.classList.add('on');}
   if(btn)btn.classList.add('on');
   if(id==='stk')renderGStock();
-  if(id==='nv'){gVItems=[{pid:0,qty:1}];renderGItems();}
+  if(id==='nv'){gVItems=[{pid:null,vi:null,qty:1}];renderGItems();}
   if(id==='hi')renderGHist();
   if(id==='ca')renderGCaja();
 }
@@ -2224,9 +2224,12 @@ async function confirmarGVenta(){
   const desc=parseFloat(document.getElementById('gVDesc').value)||0;
   let sub=0,its=[];
   for(const it of gVItems){
+    if(it.pid===null||it.vi===null)continue;
     const jit=jornadaMovil.items.find(x=>x.pid===it.pid&&x.vi===it.vi);
     const p=products.find(x=>x.id===it.pid);
     if(!p||!jit)continue;
+    const disp=jit.qty-(jit.vendido||0);
+    if(it.qty>disp){showMsg('No hay suficiente stock de '+p.name+'. Disponible: '+disp);return;}
     const v=p.variants[it.vi];
     sub+=(v.priceMovil||0)*it.qty;
     jit.vendido=(jit.vendido||0)+it.qty;
@@ -2238,7 +2241,8 @@ async function confirmarGVenta(){
   else{if(gPagoSel==='ef')ef=tot;else tr=tot;}
   const hora=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   if(!jornadaMovil.histVentas)jornadaMovil.histVentas=[];
-  jornadaMovil.histVentas.unshift({id:Date.now(),type:'v',its,tot,ef,tr,desc,edif:gEdifSel,hora});
+  const nota=document.getElementById('gVNota').value.trim();
+  jornadaMovil.histVentas.unshift({id:Date.now(),type:'v',its,tot,ef,tr,desc,edif:gEdifSel,hora,nota});
   await saveJornada();
   gVItems=[{pid:null,vi:null,qty:1}];
   document.getElementById('gVDesc').value=0;
@@ -2273,13 +2277,14 @@ function renderGHist(){
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span style="background:${v.edif==='pj'?'#FAEEDA':'#F3E8FF'};color:${e.col};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">${e.lbl}</span>
           <span style="color:${e.col};font-size:11px;">${v.hora}</span>
-          ${v.desc>0?`<span style="color:${e.col};font-size:11px;">desc. ${gFmt(v.desc)}</span>`:''}
+          ${v.desc>0?`<span style="background:#FFF3CD;color:#856404;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;">desc. -${gFmt(v.desc)}</span>`:''}
         </div>
         <span style="color:${e.col};font-weight:700;font-size:15px;margin-left:8px;">${gFmt(v.tot)}</span>
       </div>
       <div style="margin-bottom:8px;">${v.its.map(it=>`<div style="color:${e.col};font-size:13px;padding:2px 0;">${it.qty}x ${it.n}</div>`).join('')}</div>
+      ${v.nota?`<div style="font-size:12px;color:`+e.col+`;font-style:italic;margin-bottom:6px;padding:4px 0;">📝 \${v.nota}</div>`:''}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${v.ef>0?`<span style="background:#E6F1FB;color:#0C447C;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">efectivo ${gFmt(v.ef)}</span>`:''}
           ${v.tr>0?`<span style="background:#E1F5EE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">transferencia ${gFmt(v.tr)}</span>`:''}
         </div>
@@ -2380,6 +2385,11 @@ function renderMovVivo(){
         <span style="color:${tc};font-weight:700;">${gFmt(v.tot)}</span>
       </div>
       ${v.its.map(it=>`<div style="color:${tc};font-size:12px;padding:1px 0;">${it.qty}x ${it.n}</div>`).join('')}
+      <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;">
+        ${v.ef>0?`<span style="background:#E6F1FB;color:#0C447C;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;">ef. ${gFmt(v.ef)}</span>`:''}
+        ${v.tr>0?`<span style="background:#E1F5EE;color:#085041;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;">trans. ${gFmt(v.tr)}</span>`:''}
+        ${v.nota?`<span style="font-size:10px;color:${tc};font-style:italic;">📝 ${v.nota}</span>`:''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -2494,9 +2504,7 @@ async function cerrarJornada(){
 
 let movRepItems=[{pid:null,vi:null,qty:1}];
 function addMovRepItem(){
-  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({pid:p.id,vi})).filter(({v})=>v&&v.priceMovil&&+v.priceMovil>0));
-  if(!opts.length)return;
+  if(!movRepItems)movRepItems=[];
   movRepItems.push({pid:null,vi:null,qty:1});
   renderMovRepItems();
 }
@@ -2554,7 +2562,7 @@ function showMTab(id,btn){
 function renderMovStockGianella(){
   const el=document.getElementById('movStockGianella');if(!el)return;
   if(!jornadaMovil||!jornadaMovil.items||!jornadaMovil.activa){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">No hay jornada activa.</p>';return;}
-  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:var(--bg2);"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Total</th></tr></thead><tbody>'+jornadaMovil.items.map(it=>{const p=products.find(x=>x.id===it.pid);if(!p)return '';const v=p.variants[it.vi];const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');const disp=it.qty-(it.vendido||0);const low=disp<=1;return '<tr style="'+(low?'background:rgba(163,45,45,0.07);':'')+'">'+'<td style="padding:7px 10px;"><strong>'+p.name+'</strong>'+(varDesc?'<br><span style="font-size:11px;color:var(--txt2);">'+varDesc+'</span>':'')+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:'+(low?'#A32D2D':'#3B6D11')+';font-size:14px;">'+disp+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">'+(it.vendido||0)+'</td>'+'<td style="padding:7px 6px;text-align:center;color:var(--txt2);font-size:13px;">'+it.qty+'</td></tr>';}).join('')+'</tbody></table>';
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:var(--bg2);"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Total</th></tr></thead><tbody>'+jornadaMovil.items.map(it=>{const p=products.find(x=>x.id===it.pid);if(!p)return '';const v=p.variants[it.vi];const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');const disp=it.qty-(it.vendido||0);const low=disp<=1;return '<tr style="'+(low?'background:rgba(163,45,45,0.07);':'')+'">'+'<td style="padding:7px 10px;"><strong>'+p.name+'</strong>'+(varDesc?'<br><span style="font-size:11px;color:var(--txt2);">'+varDesc+'</span>':'')+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:'+(low?'#A32D2D':'#3B6D11')+';font-size:14px;">'+disp+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">'+(it.vendido||0)+'</td>'+'</tr>';}).join('')+'</tbody></table>';
 }
 async function renderHistJornadas(){
   const el=document.getElementById('movHistJornadas');if(!el)return;
