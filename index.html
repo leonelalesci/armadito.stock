@@ -595,7 +595,7 @@ a { color: var(--green); }
 .empty{text-align:center;padding:48px 16px;color:var(--txt3);font-size:14px;}
 .chk-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
 .chk-btn{padding:8px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
-.chk-btn.sel{border-color:var(--green-m);background:var(--green-l);color:var(--green-m);font-weight:700;}
+.chk-btn.sel{font-weight:700;}
 .frac-badge{display:block;font-size:11px;font-weight:600;color:var(--amber);margin-top:3px;}
 .gTab{transition:color 0.15s,border-color 0.15s;}
 .gTab.on{color:var(--txt)!important;border-bottom:2px solid var(--green)!important;}
@@ -803,15 +803,15 @@ a { color: var(--green); }
         <div class="fr">
           <div class="fg"><label>Ubicación</label>
             <div class="chk-row" id="locRow">
-              <button class="chk-btn sel" data-val="leonel" onclick="selChk('locRow','saleLoc',this)">Dpto. Leonel</button>
-              <button class="chk-btn" data-val="nagira" onclick="selChk('locRow','saleLoc',this)">Dpto. Nagira</button>
+              <button class="chk-btn sel" data-val="leonel" data-bg="#E6F1FB" data-color="#185FA5" onclick="selChk('locRow','saleLoc',this)" style="background:#E6F1FB;color:#185FA5;border-color:#185FA5;">Dpto. Leonel</button>
+              <button class="chk-btn" data-val="nagira" data-bg="#FAEEDA" data-color="#BA7517" onclick="selChk('locRow','saleLoc',this)">Dpto. Nagira</button>
             </div>
             <input type="hidden" id="saleLoc" value="leonel"/>
           </div>
           <div class="fg"><label>Tipo</label>
             <div class="chk-row" id="tipoRow">
-              <button class="chk-btn sel" data-val="normal" onclick="selChk('tipoRow','saleTipo',this)">Normal</button>
-              <button class="chk-btn" data-val="movil" onclick="selChk('tipoRow','saleTipo',this)">Armadito móvil</button>
+              <button class="chk-btn sel" data-val="normal" data-bg="var(--bg2)" data-color="var(--txt)" onclick="selChk('tipoRow','saleTipo',this)" style="background:var(--bg2);color:var(--txt);border-color:var(--brd);">Normal</button>
+              <button class="chk-btn" data-val="movil" data-bg="#F9E6FE" data-color="#C026D3" onclick="selChk('tipoRow','saleTipo',this)">Armadito móvil</button>
             </div>
             <input type="hidden" id="saleTipo" value="normal"/>
           </div>
@@ -827,15 +827,15 @@ a { color: var(--green); }
         <div class="fr" style="margin-top:12px;">
           <div class="fg"><label>Forma de pago</label>
             <div class="chk-row" id="pagoRow">
-              <button class="chk-btn sel" data-val="efectivo" onclick="selChk('pagoRow','salePago',this)">Efectivo</button>
-              <button class="chk-btn" data-val="transferencia" onclick="selChk('pagoRow','salePago',this)">Transferencia</button>
+              <button class="chk-btn sel" data-val="efectivo" data-bg="#E6F1FB" data-color="#185FA5" onclick="selChk('pagoRow','salePago',this)" style="background:#E6F1FB;color:#185FA5;border-color:#185FA5;">Efectivo</button>
+              <button class="chk-btn" data-val="transferencia" data-bg="#E1F5EE" data-color="#0F6E56" onclick="selChk('pagoRow','salePago',this)">Transferencia</button>
             </div>
             <input type="hidden" id="salePago" value="efectivo"/>
           </div>
           <div class="fg"><label>Estado de pago</label>
             <div class="chk-row" id="estadoRow">
-              <button class="chk-btn sel" data-val="pagado" onclick="selChk('estadoRow','saleEstado',this)">Pagado</button>
-              <button class="chk-btn" data-val="debe" onclick="selChk('estadoRow','saleEstado',this)">Debe</button>
+              <button class="chk-btn sel" data-val="pagado" data-bg="#EAF3DE" data-color="#3B6D11" onclick="selChk('estadoRow','saleEstado',this)" style="background:#EAF3DE;color:#3B6D11;border-color:#3B6D11;">Pagado</button>
+              <button class="chk-btn" data-val="debe" data-bg="#FCEBEB" data-color="#A32D2D" onclick="selChk('estadoRow','saleEstado',this)">Debe</button>
             </div>
             <input type="hidden" id="saleEstado" value="pagado"/>
           </div>
@@ -1132,7 +1132,7 @@ a { color: var(--green); }
       <button class="btn danger" id="btnDelVenta" style="margin-right:auto;">Eliminar</button>
       <button class="btn comprobante" id="btnEvComprobante">📄 Comp.</button>
       <button class="btn" id="btnCancelVenta">Cancelar</button>
-      <button class="btn primary" id="btnSaveVenta">Guardar</button>
+      <button class="btn primary" id="btnSaveVenta" onclick="saveEditVenta()">Guardar</button>
     </div>
   </div>
 </div>
@@ -2092,14 +2092,22 @@ document.getElementById('inputRestoreBackup').addEventListener('change',function
    CHECKLIST HELPERS
 ══════════════════════════════════════ */
 function selChk(rowId,hiddenId,btn){
-  document.querySelectorAll('#'+rowId+' .chk-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('#'+rowId+' .chk-btn').forEach(b=>{
+    b.classList.remove('sel');
+    b.style.background='';b.style.color='';b.style.borderColor='';
+  });
   btn.classList.add('sel');
+  if(btn.dataset.bg){btn.style.background=btn.dataset.bg;btn.style.color=btn.dataset.color;btn.style.borderColor=btn.dataset.color;}
   document.getElementById(hiddenId).value=btn.dataset.val;
 }
 function resetChk(rowId,hiddenId,val){
   document.querySelectorAll('#'+rowId+' .chk-btn').forEach(b=>{
     b.classList.remove('sel');
-    if(b.dataset.val===val)b.classList.add('sel');
+    b.style.background='';b.style.color='';b.style.borderColor='';
+    if(b.dataset.val===val){
+      b.classList.add('sel');
+      if(b.dataset.bg){b.style.background=b.dataset.bg;b.style.color=b.dataset.color;b.style.borderColor=b.dataset.color;}
+    }
   });
   document.getElementById(hiddenId).value=val;
 }
