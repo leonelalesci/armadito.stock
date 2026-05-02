@@ -2054,7 +2054,7 @@ function renderFraccionar(){
         <div style="text-align:right;flex-shrink:0;margin-left:12px;">
           <div style="font-size:30px;font-weight:700;color:${togOn?'var(--txt3)':'var(--green-m)'};">${item.bolsitas-(item.bolsasFrac||0)}</div>
           <div style="font-size:11px;color:var(--txt2);">bolsas restantes</div>
-          ${(item.bolsasFrac||0)>0?`<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${item.bolsasFrac} fracc. de ${item.bolsitas} totales</div>`:'<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${item.bolsitas} totales · ninguna fracc. aún</div>'}
+          ${(item.bolsasFrac||0)>0?`<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${item.bolsasFrac} fracc. de ${item.bolsitas} totales</div>`:`<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${item.bolsitas} totales · ninguna fracc. aún</div>`}
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
