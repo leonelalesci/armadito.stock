@@ -1038,25 +1038,37 @@ a { color: var(--green); }
     <h2>Editar fraccionamiento</h2>
     <div class="fg"><label>Producto / Variante</label><p id="efProdNombre" style="font-size:14px;font-weight:600;color:var(--txt);padding:8px 0;"></p></div>
     <div class="fr">
-      <div class="fg"><label>Peso total comprado</label><input type="number" id="efPesoTotal" inputmode="decimal" /></div>
-      <div class="fg"><label>Unidad</label><select id="efUnidad"><option value="g">gramos (g)</option><option value="kg">kilos (kg)</option></select></div>
+      <div class="fg"><label>Peso total comprado</label><input type="number" id="efPesoTotal" inputmode="decimal" oninput="calcEfEstimado()" /></div>
+      <div class="fg"><label>Unidad</label><select id="efUnidad" onchange="calcEfEstimado()"><option value="g">gramos (g)</option><option value="kg">kilos (kg)</option></select></div>
     </div>
-    <div class="fg"><label>Gramos por bolsita</label><input type="number" id="efGrPorBolsa" inputmode="decimal" /></div>
-    <div id="efEstimador" style="background:var(--bg3);border-radius:var(--radius-md);padding:12px;margin:10px 0;text-align:center;">
+    <div class="fg"><label>Gramos por bolsita</label><input type="number" id="efGrPorBolsa" inputmode="decimal" oninput="calcEfEstimado()" /></div>
+    <div id="efEstimador" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin:10px 0;text-align:center;">
       <div id="efEstimNum" style="font-size:34px;font-weight:700;color:var(--green-m);line-height:1;">—</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:3px;">bolsitas estimadas</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:3px;">bolsitas totales estimadas</div>
       <div id="efEstimDetalle" style="font-size:11px;color:var(--txt3);margin-top:3px;"></div>
     </div>
     <div class="fg"><label>Nota (opcional)</label><input type="text" id="efNota" placeholder="ej: compra del jueves..." /></div>
-    <!-- Bolsas fraccionadas -->
-    <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-top:4px;">
-      <div class="fg" style="margin-bottom:0;"><label>¿Cuántas bolsas fraccionaste ya?</label>
-        <input type="number" id="efBolsasFrac" placeholder="ej: 5" inputmode="numeric" min="0" oninput="calcEfFracRestante()" />
+    <!-- Fraccionamiento -->
+    <div style="background:var(--bg2);border-radius:var(--radius-md);padding:14px;margin-top:8px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">¿Cuántas bolsas fraccionaste?</label>
+      <input type="number" id="efBolsasFrac" placeholder="ej: 5" inputmode="numeric" min="0"
+        style="width:100%;padding:9px 12px;font-size:15px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);margin-bottom:10px;"
+        oninput="calcEfRestantes()" />
+      <!-- Restantes -->
+      <div id="efRestantesBox" style="display:none;text-align:center;padding:10px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:12px;">
+        <div id="efRestantesNum" style="font-size:32px;font-weight:700;color:var(--green-m);line-height:1;"></div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:3px;">bolsas restantes por fraccionar</div>
+        <div id="efRestantesDet" style="font-size:11px;color:var(--txt3);margin-top:3px;"></div>
       </div>
-      <div id="efFracRestanteInfo" style="display:none;margin-top:10px;text-align:center;background:var(--bg);border-radius:var(--radius-sm);padding:10px;">
-        <div id="efFracRestanteNum" style="font-size:28px;font-weight:700;color:var(--amber);line-height:1;">—</div>
-        <div style="font-size:12px;color:var(--txt2);margin-top:3px;">bolsas estimadas restantes</div>
-        <div id="efFracRestanteDetalle" style="font-size:11px;color:var(--txt3);margin-top:3px;"></div>
+      <!-- Destino stock — aparece cuando hay bolsas fraccionadas nuevas -->
+      <div id="efDestinoBox" style="display:none;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Agregar estas bolsas al stock de...</label>
+        <div style="display:flex;gap:8px;">
+          <button id="efBtnLeonel" onclick="selEfDestino('leonel')" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:2px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:600;cursor:pointer;">Dpto. Leonel</button>
+          <button id="efBtnNagira" onclick="selEfDestino('nagira')" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:2px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:600;cursor:pointer;">Dpto. Nagira</button>
+          <button id="efBtnNoStock" onclick="selEfDestino('none')" style="flex:1;padding:11px;border-radius:var(--radius-sm);border:2px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;cursor:pointer;">No agregar</button>
+        </div>
+        <input type="hidden" id="efDestino" value="none" />
       </div>
     </div>
     <input type="hidden" id="efId" />
@@ -1951,22 +1963,6 @@ function fillFracVar(pid){
   const sel=document.getElementById('fVar');
   sel.innerHTML=p?p.variants.map((v,i)=>`<option value="${i}">${vLbl(v)}</option>`).join(''):'<option value="">— Primero elegí producto —</option>';
 }
-function calcEfFracRestante(){
-  const fraccionadas=parseInt(document.getElementById('efBolsasFrac')?.value)||0;
-  const est=document.getElementById('efEstimNum');
-  const totalBolsas=est?parseInt(est.textContent)||0:0;
-  const info=document.getElementById('efFracRestanteInfo');
-  if(!info)return;
-  if(totalBolsas>0&&fraccionadas>=0){
-    const restantes=Math.max(0,totalBolsas-fraccionadas);
-    info.style.display='block';
-    document.getElementById('efFracRestanteNum').textContent=restantes;
-    document.getElementById('efFracRestanteDetalle').textContent=
-      fraccionadas+' fraccionadas · '+restantes+' pendientes de '+totalBolsas+' totales';
-  } else {
-    info.style.display='none';
-  }
-}
 function calcFracRestante(){
   const fraccionadas=parseInt(document.getElementById('fBolsasFrac')?.value)||0;
   const est=document.getElementById('fracEstimNum');
@@ -2056,9 +2052,9 @@ function renderFraccionar(){
           <div style="font-size:12px;color:var(--txt3);margin-top:2px;">${totalG.toLocaleString('es-AR')}g · ${item.grPorBolsa}g por bolsita</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-          <div style="font-size:30px;font-weight:700;color:${togOn?'var(--txt3)':'var(--green-m)'};">${item.bolsitas}</div>
-          <div style="font-size:11px;color:var(--txt2);">bolsitas est.</div>
-          ${(item.bolsasFrac||0)>0?`<div style="font-size:11px;color:var(--amber);margin-top:2px;">${item.bolsasFrac} fracc. · ${item.bolsitas-(item.bolsasFrac||0)} rest.</div>`:''}
+          <div style="font-size:30px;font-weight:700;color:${togOn?'var(--txt3)':'var(--green-m)'};">${item.bolsitas-(item.bolsasFrac||0)}</div>
+          <div style="font-size:11px;color:var(--txt2);">bolsas restantes</div>
+          ${(item.bolsasFrac||0)>0?`<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${item.bolsasFrac} fracc. de ${item.bolsitas} totales</div>`:'<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${item.bolsitas} totales · ninguna fracc. aún</div>'}
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -2067,14 +2063,12 @@ function renderFraccionar(){
           <span class="tx ${togOn?'on':''}">${togOn?'✓ Ya fraccionado':'Pendiente de fraccionar'}</span>
         </div>
         <button class="btn" style="font-size:12px;padding:5px 12px;min-height:32px;" data-fedit="${item.id}">Editar</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px;min-height:32px;background:var(--green-l);color:var(--green-m);border-color:var(--green-m);" data-fadd="${item.id}">+ Stock</button>
         <button class="btn danger" style="font-size:12px;padding:5px 12px;min-height:32px;" data-fdel="${item.id}">Eliminar</button>
       </div>
     </div>`;
   }).join('');
   document.querySelectorAll('[data-ftog]').forEach(el=>el.addEventListener('click',()=>toggleFraccionado(+el.dataset.ftog)));
   document.querySelectorAll('[data-fedit]').forEach(el=>el.addEventListener('click',()=>openEditFrac(+el.dataset.fedit)));
-  document.querySelectorAll('[data-fadd]').forEach(el=>el.addEventListener('click',()=>openAddStock(+el.dataset.fadd)));
   document.querySelectorAll('[data-fdel]').forEach(el=>el.addEventListener('click',()=>{
     askConfirm('¿Eliminar este registro?',async()=>{
       fracciones=fracciones.filter(f=>f.id!==+el.dataset.fdel);
@@ -2230,6 +2224,42 @@ document.getElementById('fPesoTotal').addEventListener('input',calcFracEstimado)
 document.getElementById('fGrPorBolsa').addEventListener('input',calcFracEstimado);
 document.getElementById('fUnidad').addEventListener('change',calcFracEstimado);
 
+function calcEfRestantes(){
+  const frac=parseInt(document.getElementById('efBolsasFrac').value)||0;
+  const total=parseInt(document.getElementById('efEstimNum').textContent)||0;
+  const item=fracciones.find(f=>f.id===+document.getElementById('efId').value);
+  const yaAg=item?item.stockAgregado||0:0;
+  const nuevas=Math.max(0,frac-yaAg);
+  const restantes=Math.max(0,total-frac);
+  const rb=document.getElementById('efRestantesBox');
+  const db=document.getElementById('efDestinoBox');
+  if(total>0){
+    rb.style.display='block';
+    document.getElementById('efRestantesNum').textContent=restantes;
+    document.getElementById('efRestantesDet').textContent=
+      frac+' fraccionadas · '+restantes+' pendientes de '+total+' totales';
+    // Mostrar destino solo si hay bolsas nuevas para agregar
+    db.style.display=nuevas>0?'block':'none';
+  } else {
+    rb.style.display='none';db.style.display='none';
+  }
+}
+let _efDestinoSel='none';
+function selEfDestino(dest){
+  _efDestinoSel=dest;
+  document.getElementById('efDestino').value=dest;
+  const btns={leonel:'efBtnLeonel',nagira:'efBtnNagira',none:'efBtnNoStock'};
+  Object.entries(btns).forEach(([k,bid])=>{
+    const b=document.getElementById(bid);if(!b)return;
+    const styles={
+      leonel:{bg:'#E6F1FB',color:'#185FA5',brd:'#185FA5'},
+      nagira:{bg:'#FAEEDA',color:'#BA7517',brd:'#BA7517'},
+      none:{bg:'var(--bg2)',color:'var(--txt)',brd:'var(--brd)'}
+    };
+    if(k===dest){b.style.background=styles[k].bg;b.style.color=styles[k].color;b.style.borderColor=styles[k].brd;}
+    else{b.style.background='var(--bg)';b.style.color='var(--txt2)';b.style.borderColor='var(--brd)';}
+  });
+}
 function calcEfEstimado(){
   const pt=parseFloat(document.getElementById('efPesoTotal').value)||0;
   const un=document.getElementById('efUnidad').value;
@@ -2239,7 +2269,7 @@ function calcEfEstimado(){
     const bolsitas=Math.floor(totalG/gpb);
     const resto=totalG%gpb;
     document.getElementById('efEstimNum').textContent=bolsitas;
-    calcEfFracRestante();
+    calcEfRestantes();
     document.getElementById('efEstimDetalle').textContent=`${totalG.toLocaleString('es-AR')}g ÷ ${gpb}g = ${bolsitas} bolsitas`+(resto>0?` (sobran ${resto}g)`:'');
   }
 }
@@ -2252,11 +2282,14 @@ function openEditFrac(id){
   document.getElementById('efUnidad').value=item.unidad;
   document.getElementById('efGrPorBolsa').value=item.grPorBolsa;
   document.getElementById('efNota').value=item.nota||'';
-  const efbf=document.getElementById('efBolsasFrac');if(efbf)efbf.value=item.bolsasFrac||0;
-  if((item.bolsitas||0)>0){
-    const efri=document.getElementById('efFracRestanteInfo');
-    calcEfFracRestante();
-  }
+  document.getElementById('efBolsasFrac').value=item.bolsasFrac||0;
+  document.getElementById('efDestino').value='none';
+  _efDestinoSel='none';
+  // Resetear botones destino
+  ['efBtnLeonel','efBtnNagira','efBtnNoStock'].forEach(id=>{
+    const b=document.getElementById(id);if(!b)return;
+    b.style.background='var(--bg)';b.style.color='var(--txt2)';b.style.borderColor='var(--brd)';
+  });
   calcEfEstimado();
   openM('mEditFrac');
 }
@@ -2270,15 +2303,34 @@ async function saveEditFrac(){
   if(!pt||!gpb){showMsg('Completá peso y gramos por bolsita');return;}
   const totalG=un==='kg'?pt*1000:pt;
   const bolsitas=Math.floor(totalG/gpb);
-  const efBolsasFrac=parseInt(document.getElementById('efBolsasFrac')?.value)||0;
+  const efBolsasFrac=parseInt(document.getElementById('efBolsasFrac').value)||0;
+  const destino=document.getElementById('efDestino').value;
+  const yaAg=fracciones[idx].stockAgregado||0;
+  // Solo agregar al stock las bolsas NUEVAS fraccionadas (las que no se habían agregado antes)
+  const bolsasNuevas=Math.max(0,efBolsasFrac-yaAg);
+  if(bolsasNuevas>0&&destino!=='none'){
+    const p=products.find(x=>x.id===fracciones[idx].pid);
+    if(p){
+      const v=p.variants[fracciones[idx].vi];
+      if(v){
+        if(destino==='leonel')v.stockLeonel=(v.stockLeonel||0)+bolsasNuevas;
+        else v.stockNagira=(v.stockNagira||0)+bolsasNuevas;
+        saveProduct(p);
+      }
+    }
+  }
   fracciones[idx]={...fracciones[idx],pesoTotal:pt,unidad:un,grPorBolsa:gpb,bolsitas,
     bolsasFrac:efBolsasFrac,
+    stockAgregado:destino!=='none'?yaAg+bolsasNuevas:yaAg,
     fraccionado:efBolsasFrac>=bolsitas,
     nota:document.getElementById('efNota').value.trim()};
-  await saveFraccion(fracciones[idx]);
+  saveFraccion(fracciones[idx]);
   closeM('mEditFrac');
   renderFraccionar();renderStock();
-  showMsg('Fraccionamiento actualizado.',true);
+  const msg=bolsasNuevas>0&&destino!=='none'?
+    '✅ '+bolsasNuevas+' bolsas agregadas a '+(destino==='leonel'?'Leonel':'Nagira')+'.':
+    'Fraccionamiento actualizado.';
+  showMsg(msg,bolsasNuevas>0);
 }
 document.getElementById('efPesoTotal').addEventListener('input',calcEfEstimado);
 document.getElementById('efGrPorBolsa').addEventListener('input',calcEfEstimado);
