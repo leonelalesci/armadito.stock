@@ -2239,7 +2239,7 @@ function calcEfRestantes(){
     document.getElementById('efRestantesDet').textContent=
       frac+' fraccionadas · '+restantes+' pendientes de '+total+' totales';
     // Mostrar destino solo si hay bolsas nuevas para agregar
-    db.style.display=nuevas>0?'block':'none';
+    db.style.display=frac>0?'block':'none';
   } else {
     rb.style.display='none';db.style.display='none';
   }
@@ -2305,9 +2305,9 @@ async function saveEditFrac(){
   const bolsitas=Math.floor(totalG/gpb);
   const efBolsasFrac=parseInt(document.getElementById('efBolsasFrac').value)||0;
   const destino=document.getElementById('efDestino').value;
-  const yaAg=fracciones[idx].stockAgregado||0;
-  // Solo agregar al stock las bolsas NUEVAS fraccionadas (las que no se habían agregado antes)
-  const bolsasNuevas=Math.max(0,efBolsasFrac-yaAg);
+  // Bolsas nuevas = diferencia con lo que había antes (no con stockAgregado)
+  const bolsasAntes=fracciones[idx].bolsasFrac||0;
+  const bolsasNuevas=Math.max(0,efBolsasFrac-bolsasAntes);
   if(bolsasNuevas>0&&destino!=='none'){
     const p=products.find(x=>x.id===fracciones[idx].pid);
     if(p){
@@ -2321,7 +2321,6 @@ async function saveEditFrac(){
   }
   fracciones[idx]={...fracciones[idx],pesoTotal:pt,unidad:un,grPorBolsa:gpb,bolsitas,
     bolsasFrac:efBolsasFrac,
-    stockAgregado:destino!=='none'?yaAg+bolsasNuevas:yaAg,
     fraccionado:efBolsasFrac>=bolsitas,
     nota:document.getElementById('efNota').value.trim()};
   saveFraccion(fracciones[idx]);
