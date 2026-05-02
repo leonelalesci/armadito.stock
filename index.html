@@ -876,6 +876,19 @@ a { color: var(--green); }
       <div id="productList"></div>
     </div>
 
+    <!-- Modal agregar stock desde fraccionar -->
+    <div class="mb" id="mAddStock">
+      <div class="mo" style="max-width:380px;">
+        <h2>Agregar al stock</h2>
+        <p id="mAddStockDesc" style="font-size:14px;color:var(--txt2);margin-bottom:20px;line-height:1.5;"></p>
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <button id="btnAddStockLeonel" class="btn" style="flex:1;padding:12px;background:#E6F1FB;color:#185FA5;border-color:#185FA5;font-weight:600;">Dpto. Leonel</button>
+          <button id="btnAddStockNagira" class="btn" style="flex:1;padding:12px;background:#FAEEDA;color:#BA7517;border-color:#BA7517;font-weight:600;">Dpto. Nagira</button>
+        </div>
+        <button class="btn" onclick="closeM('mAddStock')" style="width:100%;">Cancelar</button>
+      </div>
+    </div>
+
     <!-- GASTOS -->
     <div id="sec-gastos" class="sec">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -1699,7 +1712,7 @@ function renderProds(){
   const busqProd=(document.getElementById('prodSearch')?.value||'').toLowerCase().trim();
   let prodsFilt=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
   if(busqProd)prodsFilt=prodsFilt.filter(p=>p.name.toLowerCase().includes(busqProd));
-  if(!prodsFilt.length){document.getElementById('productList').innerHTML='<div class="empty"><div class="ei">📦</div>No hay productos.</div>';return;}const sortedProds=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));document.getElementById('productList').innerHTML=sortedProds.map(p=>`<div class="card"><div class="ch"><div><div class="ct">${p.name}</div><div class="cs-row"><span class="${catClass(p.cat)}">${p.cat}</span> · ${p.variants.length} var. · mín: ${p.minStock}</div></div></div><div class="ca"><button class="btn" style="font-size:13px;" data-edit="${p.id}">Editar</button><button class="btn danger" style="font-size:13px;" data-del="${p.id}">Eliminar</button></div></div>`).join('');document.querySelectorAll('#productList [data-edit]').forEach(b=>b.addEventListener('click',()=>openEditProd(+b.dataset.edit)));document.querySelectorAll('#productList [data-del]').forEach(b=>b.addEventListener('click',()=>{const id=+b.dataset.del;askConfirm('¿Eliminar este producto y todas sus variantes?',async()=>{products=products.filter(p=>p.id!==id);await deleteProduct(id);renderProds();renderStock();showMsg('Producto eliminado.');});}));}
+  if(!prodsFilt.length){document.getElementById('productList').innerHTML='<div class="empty"><div class="ei">📦</div>No hay productos.</div>';return;}const sortedProds=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));document.getElementById('productList').innerHTML=prodsFilt.map(p=>`<div class="card"><div class="ch"><div><div class="ct">${p.name}</div><div class="cs-row"><span class="${catClass(p.cat)}">${p.cat}</span> · ${p.variants.length} var. · mín: ${p.minStock}</div></div></div><div class="ca"><button class="btn" style="font-size:13px;" data-edit="${p.id}">Editar</button><button class="btn danger" style="font-size:13px;" data-del="${p.id}">Eliminar</button></div></div>`).join('');document.querySelectorAll('#productList [data-edit]').forEach(b=>b.addEventListener('click',()=>openEditProd(+b.dataset.edit)));document.querySelectorAll('#productList [data-del]').forEach(b=>b.addEventListener('click',()=>{const id=+b.dataset.del;askConfirm('¿Eliminar este producto y todas sus variantes?',async()=>{products=products.filter(p=>p.id!==id);await deleteProduct(id);renderProds();renderStock();showMsg('Producto eliminado.');});}));}
 function fillPCat(sel){document.getElementById('pCat').innerHTML=cats.map(c=>`<option value="${c}"${sel===c?' selected':''}>${c}</option>`).join('');}
 function openAddProd(){ePid=null;document.getElementById('mProdTitle').textContent='Nuevo producto';document.getElementById('pName').value='';document.getElementById('pMin').value='2';document.getElementById('varRows').innerHTML='';fillPCat(cats[0]);addVarRow();openM('mProd');}
 function openEditProd(id){const p=products.find(x=>x.id===id);if(!p)return;ePid=id;document.getElementById('mProdTitle').textContent='Editar producto';document.getElementById('pName').value=p.name;document.getElementById('pMin').value=p.minStock;document.getElementById('varRows').innerHTML='';fillPCat(p.cat);p.variants.forEach(v=>addVarRow(v.name,v.weight,v.price,v.priceMovil,v.costo,v.stockLeonel,v.stockNagira,v.proveedor||'',v.marca||''));openM('mProd');}
@@ -2044,56 +2057,106 @@ function renderFraccionar(){
   }));
 }
 // Modal agregar stock desde fraccionar
+let _addStockFracId=null;
+function openAddStock(id){
+  const item=fracciones.find(f=>f.id===id);if(!item)return;
+  const p=products.find(x=>x.id===item.pid);if(!p)return;
+  const bolsasFrac=item.bolsasFrac||0;
+  if(bolsasFrac<=0){showMsg('Primero indicá cuántas bolsas fraccionaste en el registro.');return;}
+  const yaAg=item.stockAgregado||0;
+  const porAg=bolsasFrac-yaAg;
+  if(porAg<=0){showMsg('Ya agregaste todas las bolsas fraccionadas al stock.');return;}
+  _addStockFracId=id;
+  document.getElementById('mAddStockDesc').textContent=
+    'Agregar '+porAg+' bolsa'+(porAg!==1?'s':'')+' de '+item.prodName+' — '+(item.varName||'')+' al stock de...';
+  openM('mAddStock');
+}
+async function _doAddStock(destino){
+  closeM('mAddStock');
+  const item=fracciones.find(f=>f.id===_addStockFracId);if(!item)return;
+  const p=products.find(x=>x.id===item.pid);if(!p)return;
+  const porAg=(item.bolsasFrac||0)-(item.stockAgregado||0);
+  if(porAg<=0)return;
+  const v=p.variants[item.vi];if(!v)return;
+  if(destino==='leonel')v.stockLeonel=(v.stockLeonel||0)+porAg;
+  else v.stockNagira=(v.stockNagira||0)+porAg;
+  await saveProduct(p);
+  item.stockAgregado=(item.stockAgregado||0)+porAg;
+  await saveFraccion(item);
+  renderFraccionar();renderStock();
+  showMsg('✅ +'+porAg+' bolsas a '+(destino==='leonel'?'Leonel':'Nagira')+'.',true);
+}
+
 async function generarInformeFrac(){
   const pendientes=fracciones.filter(f=>!f.fraccionado);
   if(!pendientes.length){showMsg('No hay pendientes de fraccionar.');return;}
+  await document.fonts.ready;
+  const BG='#ffffff',TEXT='#111111',GRAY='#666666',LG='#e0e0e0',AMBER='#BA7517';
+  const W=800,PAD=60,ROW_H=80,HEADER_H=180,FOOTER=60;
+  const H=HEADER_H+pendientes.length*ROW_H+FOOTER;
   const c=document.createElement('canvas');
-  const W=700,pad=32,rowH=44,headerH=80;
-  c.width=W;c.height=headerH+pendientes.length*rowH+pad*2;
+  c.width=W;c.height=H;
   const ctx=c.getContext('2d');
-  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  const bg=isDark?'#1a1a1a':'#ffffff';
-  const txt=isDark?'#f0f0f0':'#1a1a1a';
-  const txt2=isDark?'#999':'#666';
-  const brd=isDark?'#333':'#e5e5e5';
-  ctx.fillStyle=bg;ctx.fillRect(0,0,c.width,c.height);
-  // Header
-  ctx.fillStyle='#BA7517';ctx.fillRect(0,0,W,6);
-  ctx.fillStyle=txt;ctx.font='bold 22px -apple-system,sans-serif';
-  ctx.fillText('📦 Fraccionar — Pendientes',pad,pad+22);
-  ctx.fillStyle=txt2;ctx.font='13px -apple-system,sans-serif';
-  ctx.fillText(new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}),pad,pad+44);
-  // Columnas header
-  const cols=[{x:pad,w:280,label:'Producto'},{x:320,w:160,label:'A fraccionar'},{x:490,w:150,label:'Bolsitas est.'}];
-  const hy=headerH;
-  ctx.fillStyle=brd;ctx.fillRect(0,hy,W,1);
-  ctx.fillStyle=txt2;ctx.font='bold 11px -apple-system,sans-serif';
-  cols.forEach(col=>ctx.fillText(col.label.toUpperCase(),col.x,hy+18));
-  ctx.fillStyle=brd;ctx.fillRect(0,hy+24,W,1);
+  // Fondo blanco
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  // Barra superior naranja
+  ctx.fillStyle=AMBER;ctx.fillRect(0,0,W,8);
+  // Título
+  ctx.fillStyle=TEXT;ctx.font='bold 36px sans-serif';ctx.textAlign='left';
+  ctx.fillText('📦 Fraccionar — Pendientes',PAD,64);
+  // Fecha
+  const fecha=nowMza().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  ctx.font='20px sans-serif';ctx.fillStyle=GRAY;
+  ctx.fillText(fecha,PAD,96);
+  // Separador
+  ctx.strokeStyle=TEXT;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD,120);ctx.lineTo(W-PAD,120);ctx.stroke();
+  // Headers columnas
+  ctx.font='bold 15px sans-serif';ctx.fillStyle=GRAY;ctx.textAlign='left';
+  ctx.fillText('PRODUCTO',PAD,148);
+  ctx.textAlign='center';ctx.fillText('A FRACCIONAR',W*0.58,148);
+  ctx.fillText('BOLSITAS EST.',W*0.82,148);
+  ctx.strokeStyle=LG;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD,158);ctx.lineTo(W-PAD,158);ctx.stroke();
   // Filas
   pendientes.forEach((item,i)=>{
-    const y=hy+24+i*rowH;
-    if(i%2===1){ctx.fillStyle=isDark?'#222':'#f9f9f9';ctx.fillRect(0,y,W,rowH);}
-    const restantes=item.bolsitas-(item.bolsasFrac||0);
+    const y=HEADER_H+i*ROW_H;
+    // Fondo alternado
+    if(i%2===1){ctx.fillStyle='#f7f7f7';ctx.fillRect(0,y,W,ROW_H);}
+    // Nombre producto
+    ctx.fillStyle=TEXT;ctx.font='bold 22px sans-serif';ctx.textAlign='left';
+    ctx.fillText(item.prodName,PAD,y+30);
+    // Variante
+    if(item.varName){
+      ctx.font='17px sans-serif';ctx.fillStyle=GRAY;
+      ctx.fillText(item.varName,PAD,y+54);
+    }
+    // A fraccionar — calcular restante
+    const bolsasFrac=item.bolsasFrac||0;
+    const restantes=Math.max(0,item.bolsitas-bolsasFrac);
     const totalG=item.unidad==='kg'?item.pesoTotal*1000:item.pesoTotal;
     const restG=restantes*item.grPorBolsa;
     const restDisplay=restG>=1000?(restG/1000).toFixed(2)+'kg':restG+'g';
-    ctx.fillStyle=txt;ctx.font='bold 14px -apple-system,sans-serif';
-    ctx.fillText(item.prodName,pad,y+rowH/2+5);
-    ctx.fillStyle=txt2;ctx.font='12px -apple-system,sans-serif';
-    ctx.fillText(item.varName||'',pad,y+rowH/2+19);
-    ctx.fillStyle=txt;ctx.font='14px -apple-system,sans-serif';
-    ctx.fillText(restDisplay,320,y+rowH/2+7);
-    ctx.fillStyle='#3B6D11';ctx.font='bold 16px -apple-system,sans-serif';
-    ctx.fillText(restantes+' bolsas',490,y+rowH/2+7);
-    ctx.fillStyle=brd;ctx.fillRect(0,y+rowH-1,W,1);
+    ctx.fillStyle=TEXT;ctx.font='22px sans-serif';ctx.textAlign='center';
+    ctx.fillText(restDisplay,W*0.58,y+38);
+    // Bolsitas
+    ctx.fillStyle='#3B6D11';ctx.font='bold 24px sans-serif';
+    ctx.fillText(restantes+' bolsas',W*0.82,y+38);
+    // Separador fila
+    ctx.strokeStyle=LG;ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(PAD,y+ROW_H-1);ctx.lineTo(W-PAD,y+ROW_H-1);ctx.stroke();
   });
-  const a=document.createElement('a');
-  a.href=c.toDataURL('image/png');
-  a.download='fraccionar-pendientes-'+dateMza()+'.png';
-  a.click();
-  showMsg('✅ Informe generado.',true);
+  // Mostrar en modal como comprobante
+  const img=document.getElementById('compImg');
+  if(img){
+    img.src=c.toDataURL('image/png');
+    // Cambiar título del modal
+    const h2=document.querySelector('#mComprobante h2');
+    if(h2)h2.textContent='Informe — Pendientes de fraccionar';
+    openM('mComprobante');
+  }
 }
+
 function openAddStock(id){
   const item=fracciones.find(f=>f.id===id);
   if(!item)return;
@@ -2161,6 +2224,8 @@ function openEditFrac(id){
   document.getElementById('efUnidad').value=item.unidad;
   document.getElementById('efGrPorBolsa').value=item.grPorBolsa;
   document.getElementById('efNota').value=item.nota||'';
+  const fbf=document.getElementById('fBolsasFrac');if(fbf)fbf.value=item.bolsasFrac||'';
+  if((item.bolsitas||0)>0){const fsec=document.getElementById('fraccionadoSection');if(fsec)fsec.style.display='block';}
   calcEfEstimado();
   openM('mEditFrac');
 }
