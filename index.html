@@ -770,6 +770,7 @@ a { color: var(--green); }
           <select id="filterLow" style="font-size:13px;padding:7px 10px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);-webkit-appearance:none;"><option value="">Todo</option><option value="low">Stock bajo</option><option value="movil">Solo móvil</option></select>
         </div>
       </div>
+      <input type="text" id="stockSearch" placeholder="🔍 Buscar producto..." oninput="renderStock()" style="width:100%;padding:9px 12px;font-size:14px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);margin-bottom:10px;" />
       <!-- Botón informe — ancho completo, bien visible en móvil y desktop -->
       <button class="btn full" id="btnInforme" style="margin-bottom:14px;justify-content:center;gap:8px;border-color:var(--brd2);font-size:14px;">📄 Generar informe de stock</button>
       <div id="stockList"></div>
@@ -958,7 +959,10 @@ a { color: var(--green); }
     <div id="sec-fraccionar" class="sec">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <p class="st" style="margin:0;">Fraccionar</p>
-        <button class="btn primary" id="btnNuevoFrac">+ Nuevo</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="btnInformeFrac" style="font-size:13px;padding:7px 12px;">📄 Informe</button>
+          <button class="btn primary" id="btnNuevoFrac">+ Nuevo</button>
+        </div>
       </div>
       <div class="card" id="formFrac" style="display:none;">
         <p style="font-size:15px;font-weight:600;margin-bottom:14px;color:var(--txt);">Registrar para fraccionar</p>
@@ -977,6 +981,17 @@ a { color: var(--green); }
           <div id="fracEstimDetalle" style="font-size:11px;color:var(--txt3);margin-top:4px;"></div>
         </div>
         <div class="fg"><label>Nota (opcional)</label><input type="text" id="fNota" placeholder="ej: compra del jueves..." /></div>
+        <!-- Bolsas fraccionadas -->
+        <div id="fraccionadoSection" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:12px;margin-top:4px;">
+          <div class="fg" style="margin-bottom:0;"><label>¿Cuántas bolsas fraccionaste ya?</label>
+            <input type="number" id="fBolsasFrac" placeholder="ej: 5" inputmode="numeric" min="0" oninput="calcFracRestante()" />
+          </div>
+          <div id="fracRestanteInfo" style="display:none;margin-top:10px;text-align:center;background:var(--bg);border-radius:var(--radius-sm);padding:10px;">
+            <div id="fracRestanteNum" style="font-size:28px;font-weight:700;color:var(--amber);line-height:1;">—</div>
+            <div style="font-size:12px;color:var(--txt2);margin-top:3px;">bolsas estimadas restantes</div>
+            <div id="fracRestanteDetalle" style="font-size:11px;color:var(--txt3);margin-top:3px;"></div>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:4px;">
           <button class="btn full" id="btnCancelarFrac">Cancelar</button>
           <button class="btn primary full" id="btnGuardarFrac">Guardar</button>
@@ -1071,6 +1086,28 @@ a { color: var(--green); }
     <div class="fr"><div class="fg"><label>Fecha</label><input type="date" id="gDate" /></div><div class="fg"><label>Proveedor</label><input type="text" id="gProveedor" placeholder="ej: Mercado..." autocapitalize="words" /></div></div>
     <div class="fr"><div class="fg"><label>Lugar</label><input type="text" id="gLugar" placeholder="ej: Carrefour..." autocapitalize="words" /></div><div class="fg"><label>Forma de pago</label><select id="gPago"><option value="efectivo">efectivo</option><option value="transferencia">transferencia</option><option value="tarjeta">tarjeta de crédito</option></select></div></div>
     <div class="fg"><label>¿Quién pagó?</label><select id="gPagador"><option value="armadito">armadito</option><option value="leonel">Leonel</option><option value="nagira">Nagira</option></select></div>
+    <!-- Toggle Costear -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px;background:var(--bg2);border-radius:var(--radius-md);">
+      <div class="tw" id="togCostear" onclick="toggleCostear()">
+        <div class="tt" id="tCostear"></div>
+        <span class="tx" id="txCostear">Sin costeo</span>
+      </div>
+    </div>
+    <!-- Calculadora de costeo (oculta por defecto) -->
+    <div id="divCostear" style="display:none;background:var(--bg2);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;">
+      <p style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:12px;">Calculadora de costo</p>
+      <div class="fr">
+        <div class="fg"><label>Peso total comprado</label><input type="number" id="costPesoTotal" placeholder="ej: 1000" inputmode="decimal" oninput="calcCosteo()" /></div>
+        <div class="fg"><label>Unidad</label><select id="costUnidad" onchange="calcCosteo()"><option value="g">gramos (g)</option><option value="kg" selected>kilos (kg)</option></select></div>
+      </div>
+      <div class="fg"><label>Gramos por bolsita / porción</label><input type="number" id="costGrPorcion" placeholder="ej: 200" inputmode="decimal" oninput="calcCosteo()" /></div>
+      <div class="fg"><label>Costo total pagado $</label><input type="number" id="costTotal" placeholder="ej: 10000" inputmode="decimal" oninput="calcCosteo()" /></div>
+      <div id="costeoResultado" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-top:4px;text-align:center;">
+        <div id="costeoNum" style="font-size:32px;font-weight:700;color:var(--green-m);">—</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:4px;">costo estimado por bolsita</div>
+        <div id="costeoDetalle" style="font-size:11px;color:var(--txt3);margin-top:4px;"></div>
+      </div>
+    </div>
     <p class="sep">Conceptos</p>
     <div id="conceptoRows"></div>
     <button class="btn" id="btnAddConcepto" style="margin-bottom:12px;width:100%;">+ Agregar concepto</button>
@@ -1890,6 +1927,22 @@ function fillFracVar(pid){
   const sel=document.getElementById('fVar');
   sel.innerHTML=p?p.variants.map((v,i)=>`<option value="${i}">${vLbl(v)}</option>`).join(''):'<option value="">— Primero elegí producto —</option>';
 }
+function calcFracRestante(){
+  const fraccionadas=parseInt(document.getElementById('fBolsasFrac')?.value)||0;
+  const est=document.getElementById('fracEstimNum');
+  const totalBolsas=est?parseInt(est.textContent)||0:0;
+  const info=document.getElementById('fracRestanteInfo');
+  if(!info)return;
+  if(totalBolsas>0&&fraccionadas>=0){
+    const restantes=Math.max(0,totalBolsas-fraccionadas);
+    info.style.display='block';
+    document.getElementById('fracRestanteNum').textContent=restantes;
+    document.getElementById('fracRestanteDetalle').textContent=
+      fraccionadas+' fraccionadas · '+restantes+' pendientes de '+totalBolsas+' totales';
+  } else {
+    info.style.display='none';
+  }
+}
 function calcFracEstimado(){
   const pt=parseFloat(document.getElementById('fPesoTotal').value)||0;
   const un=document.getElementById('fUnidad').value;
@@ -1929,7 +1982,8 @@ async function guardarFrac(){
   const p=products.find(x=>x.id===+pidVal);
   const totalG=un==='kg'?pt*1000:pt;
   const bolsitas=Math.floor(totalG/gpb);
-  const f={id:nFid++,pid:+pidVal,vi:+viVal,prodName:p.name,varName:vLbl(p.variants[+viVal]),pesoTotal:pt,unidad:un,grPorBolsa:gpb,bolsitas,nota:document.getElementById('fNota').value.trim(),fraccionado:false,fecha:dateMza()};
+  const bolsasFrac=parseInt(document.getElementById('fBolsasFrac')?.value)||0;
+  const f={id:nFid++,pid:+pidVal,vi:+viVal,prodName:p.name,varName:vLbl(p.variants[+viVal]),pesoTotal:pt,unidad:un,grPorBolsa:gpb,bolsitas,bolsasFrac,nota:document.getElementById('fNota').value.trim(),fraccionado:bolsasFrac>=bolsitas,fecha:dateMza()};
   fracciones.unshift(f);
   await saveFraccion(f);
   closeFormFrac();renderFraccionar();renderStock();
@@ -1964,6 +2018,7 @@ function renderFraccionar(){
         <div style="text-align:right;flex-shrink:0;margin-left:12px;">
           <div style="font-size:30px;font-weight:700;color:${togOn?'var(--txt3)':'var(--green-m)'};">${item.bolsitas}</div>
           <div style="font-size:11px;color:var(--txt2);">bolsitas est.</div>
+          ${(item.bolsasFrac||0)>0?`<div style="font-size:11px;color:var(--amber);margin-top:2px;">${item.bolsasFrac} fracc. · ${item.bolsitas-(item.bolsasFrac||0)} rest.</div>`:''}
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -1972,12 +2027,14 @@ function renderFraccionar(){
           <span class="tx ${togOn?'on':''}">${togOn?'✓ Ya fraccionado':'Pendiente de fraccionar'}</span>
         </div>
         <button class="btn" style="font-size:12px;padding:5px 12px;min-height:32px;" data-fedit="${item.id}">Editar</button>
+        <button class="btn" style="font-size:12px;padding:5px 12px;min-height:32px;background:var(--green-l);color:var(--green-m);border-color:var(--green-m);" data-fadd="${item.id}">+ Stock</button>
         <button class="btn danger" style="font-size:12px;padding:5px 12px;min-height:32px;" data-fdel="${item.id}">Eliminar</button>
       </div>
     </div>`;
   }).join('');
   document.querySelectorAll('[data-ftog]').forEach(el=>el.addEventListener('click',()=>toggleFraccionado(+el.dataset.ftog)));
   document.querySelectorAll('[data-fedit]').forEach(el=>el.addEventListener('click',()=>openEditFrac(+el.dataset.fedit)));
+  document.querySelectorAll('[data-fadd]').forEach(el=>el.addEventListener('click',()=>openAddStock(+el.dataset.fadd)));
   document.querySelectorAll('[data-fdel]').forEach(el=>el.addEventListener('click',()=>{
     askConfirm('¿Eliminar este registro?',async()=>{
       fracciones=fracciones.filter(f=>f.id!==+el.dataset.fdel);
@@ -1986,7 +2043,96 @@ function renderFraccionar(){
     });
   }));
 }
+// Modal agregar stock desde fraccionar
+async function generarInformeFrac(){
+  const pendientes=fracciones.filter(f=>!f.fraccionado);
+  if(!pendientes.length){showMsg('No hay pendientes de fraccionar.');return;}
+  const c=document.createElement('canvas');
+  const W=700,pad=32,rowH=44,headerH=80;
+  c.width=W;c.height=headerH+pendientes.length*rowH+pad*2;
+  const ctx=c.getContext('2d');
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  const bg=isDark?'#1a1a1a':'#ffffff';
+  const txt=isDark?'#f0f0f0':'#1a1a1a';
+  const txt2=isDark?'#999':'#666';
+  const brd=isDark?'#333':'#e5e5e5';
+  ctx.fillStyle=bg;ctx.fillRect(0,0,c.width,c.height);
+  // Header
+  ctx.fillStyle='#BA7517';ctx.fillRect(0,0,W,6);
+  ctx.fillStyle=txt;ctx.font='bold 22px -apple-system,sans-serif';
+  ctx.fillText('📦 Fraccionar — Pendientes',pad,pad+22);
+  ctx.fillStyle=txt2;ctx.font='13px -apple-system,sans-serif';
+  ctx.fillText(new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}),pad,pad+44);
+  // Columnas header
+  const cols=[{x:pad,w:280,label:'Producto'},{x:320,w:160,label:'A fraccionar'},{x:490,w:150,label:'Bolsitas est.'}];
+  const hy=headerH;
+  ctx.fillStyle=brd;ctx.fillRect(0,hy,W,1);
+  ctx.fillStyle=txt2;ctx.font='bold 11px -apple-system,sans-serif';
+  cols.forEach(col=>ctx.fillText(col.label.toUpperCase(),col.x,hy+18));
+  ctx.fillStyle=brd;ctx.fillRect(0,hy+24,W,1);
+  // Filas
+  pendientes.forEach((item,i)=>{
+    const y=hy+24+i*rowH;
+    if(i%2===1){ctx.fillStyle=isDark?'#222':'#f9f9f9';ctx.fillRect(0,y,W,rowH);}
+    const restantes=item.bolsitas-(item.bolsasFrac||0);
+    const totalG=item.unidad==='kg'?item.pesoTotal*1000:item.pesoTotal;
+    const restG=restantes*item.grPorBolsa;
+    const restDisplay=restG>=1000?(restG/1000).toFixed(2)+'kg':restG+'g';
+    ctx.fillStyle=txt;ctx.font='bold 14px -apple-system,sans-serif';
+    ctx.fillText(item.prodName,pad,y+rowH/2+5);
+    ctx.fillStyle=txt2;ctx.font='12px -apple-system,sans-serif';
+    ctx.fillText(item.varName||'',pad,y+rowH/2+19);
+    ctx.fillStyle=txt;ctx.font='14px -apple-system,sans-serif';
+    ctx.fillText(restDisplay,320,y+rowH/2+7);
+    ctx.fillStyle='#3B6D11';ctx.font='bold 16px -apple-system,sans-serif';
+    ctx.fillText(restantes+' bolsas',490,y+rowH/2+7);
+    ctx.fillStyle=brd;ctx.fillRect(0,y+rowH-1,W,1);
+  });
+  const a=document.createElement('a');
+  a.href=c.toDataURL('image/png');
+  a.download='fraccionar-pendientes-'+dateMza()+'.png';
+  a.click();
+  showMsg('✅ Informe generado.',true);
+}
+function openAddStock(id){
+  const item=fracciones.find(f=>f.id===id);
+  if(!item)return;
+  const p=products.find(x=>x.id===item.pid);
+  if(!p)return;
+  const bolsasDisp=item.bolsitas-(item.bolsasFrac||0);
+  if(bolsasDisp<=0){showMsg('No hay bolsas disponibles para agregar al stock.');return;}
+  const donde=confirm(
+    `Agregar ${bolsasDisp} bolsas de ${item.prodName} — ${item.varName} al stock.
+
+Aceptar = Dpto. Leonel
+Cancelar = Dpto. Nagira`
+  );
+  // confirm: true=Leonel, false=Nagira
+  // Pero confirm no permite elegir claramente — usamos prompt
+  const loc=prompt(
+    `¿Dónde agregar las ${bolsasDisp} bolsas?
+
+Escribí:
+  L → Dpto. Leonel
+  N → Dpto. Nagira`,
+    'L'
+  );
+  if(!loc)return;
+  const destino=loc.trim().toUpperCase()==='N'?'nagira':'leonel';
+  const v=p.variants[item.vi];
+  if(!v){showMsg('Variante no encontrada.');return;}
+  if(destino==='leonel')v.stockLeonel=(v.stockLeonel||0)+bolsasDisp;
+  else v.stockNagira=(v.stockNagira||0)+bolsasDisp;
+  saveProduct(p);
+  // Marcar como fraccionado el registro (sin tocar el stock si se elimina luego)
+  item.fraccionado=true;
+  item.bolsasFrac=item.bolsitas;
+  saveFraccion(item);
+  renderFraccionar();renderStock();
+  showMsg(`✅ +${bolsasDisp} bolsas agregadas a ${destino==='leonel'?'Leonel':'Nagira'}.`,true);
+}
 document.getElementById('btnNuevoFrac').addEventListener('click',openFormFrac);
+document.getElementById('btnInformeFrac').addEventListener('click',generarInformeFrac);
 document.getElementById('btnCancelarFrac').addEventListener('click',closeFormFrac);
 document.getElementById('btnGuardarFrac').addEventListener('click',guardarFrac);
 document.getElementById('fProd').addEventListener('change',e=>fillFracVar(e.target.value));
@@ -2039,6 +2185,53 @@ document.getElementById('efGrPorBolsa').addEventListener('input',calcEfEstimado)
 document.getElementById('efUnidad').addEventListener('change',calcEfEstimado);
 document.getElementById('btnCancelEditFrac').addEventListener('click',()=>closeM('mEditFrac'));
 document.getElementById('btnSaveEditFrac').addEventListener('click',saveEditFrac);
+
+/* ══════════════════════════════════════
+   COSTEO EN GASTOS
+══════════════════════════════════════ */
+let costearOn=false;
+function toggleCostear(){
+  costearOn=!costearOn;
+  const tt=document.getElementById('tCostear');
+  const tx=document.getElementById('txCostear');
+  const div=document.getElementById('divCostear');
+  if(tt)tt.classList.toggle('on',costearOn);
+  if(tx){tx.textContent=costearOn?'Con costeo':'Sin costeo';tx.classList.toggle('on',costearOn);}
+  if(div)div.style.display=costearOn?'block':'none';
+}
+function calcCosteo(){
+  const pt=parseFloat(document.getElementById('costPesoTotal')?.value)||0;
+  const un=document.getElementById('costUnidad')?.value||'kg';
+  const gp=parseFloat(document.getElementById('costGrPorcion')?.value)||0;
+  const ct=parseFloat(document.getElementById('costTotal')?.value)||0;
+  const res=document.getElementById('costeoResultado');
+  if(!res)return;
+  if(pt>0&&gp>0&&ct>0){
+    const totalG=un==='kg'?pt*1000:pt;
+    const porciones=Math.floor(totalG/gp);
+    const costoPor=porciones>0?ct/porciones:0;
+    const resto=totalG%gp;
+    res.style.display='block';
+    document.getElementById('costeoNum').textContent=fmtMoney(costoPor);
+    document.getElementById('costeoDetalle').textContent=
+      `${totalG.toLocaleString('es-AR')}g ÷ ${gp}g = ${porciones} porciones`+
+      (resto>0?` (sobran ${resto}g)`:'')+
+      ` · Total $${ct.toLocaleString('es-AR')}`;
+  } else {
+    res.style.display='none';
+  }
+}
+function resetCostear(){
+  costearOn=false;
+  const tt=document.getElementById('tCostear');
+  const tx=document.getElementById('txCostear');
+  const div=document.getElementById('divCostear');
+  if(tt)tt.classList.remove('on');
+  if(tx){tx.textContent='Sin costeo';tx.classList.remove('on');}
+  if(div)div.style.display='none';
+  ['costPesoTotal','costGrPorcion','costTotal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const res=document.getElementById('costeoResultado');if(res)res.style.display='none';
+}
 
 /* ══════════════════════════════════════
    BACKUP Y RESTAURAR
