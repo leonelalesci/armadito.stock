@@ -1187,7 +1187,22 @@ a { color: var(--green); }
   <div class="mo">
     <h2>Editar venta</h2>
     <div class="fr"><div class="fg"><label>Cliente</label><input type="text" id="evClient" autocapitalize="words" /></div><div class="fg"><label>Fecha</label><input type="date" id="evDate" /></div></div>
-    <div class="fr"><div class="fg"><label>Ubicación</label><select id="evLoc"><option value="leonel">Dpto. Leonel</option><option value="nagira">Dpto. Nagira</option></select></div><div class="fg"><label>Tipo</label><select id="evTipo"><option value="normal">Normal</option><option value="movil">Armadito móvil</option></select></div></div>
+    <div class="fr">
+      <div class="fg"><label>Ubicación</label>
+        <div class="chk-row" id="evLocRow">
+          <button class="chk-btn" data-val="leonel" data-bg="#E6F1FB" data-color="#185FA5" onclick="selChk('evLocRow','evLoc',this);renderEvItems()">Dpto. Leonel</button>
+          <button class="chk-btn" data-val="nagira" data-bg="#FAEEDA" data-color="#BA7517" onclick="selChk('evLocRow','evLoc',this);renderEvItems()">Dpto. Nagira</button>
+        </div>
+        <input type="hidden" id="evLoc" value="leonel"/>
+      </div>
+      <div class="fg"><label>Tipo</label>
+        <div class="chk-row" id="evTipoRow">
+          <button class="chk-btn" data-val="normal" data-bg="var(--bg2)" data-color="var(--txt)" onclick="selChk('evTipoRow','evTipo',this);updateEvTotal()">Normal</button>
+          <button class="chk-btn" data-val="movil" data-bg="#F9E6FE" data-color="#C026D3" onclick="selChk('evTipoRow','evTipo',this);updateEvTotal()">Armadito móvil</button>
+        </div>
+        <input type="hidden" id="evTipo" value="normal"/>
+      </div>
+    </div>
     <p style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--txt);">Productos</p>
     <div id="evItems"></div>
     <button class="btn" id="btnAddEvItem" style="margin:8px 0 12px;width:100%;">+ Agregar producto</button>
@@ -1197,10 +1212,27 @@ a { color: var(--green); }
       <div class="total-row final"><span>Total</span><span id="evTotal">$0</span></div>
       <div class="total-row ganancia-pos" id="evGananciaRow" style="display:none;"><span>Ganancia estimada</span><span id="evGanancia"></span></div>
     </div>
-    <div class="fr" style="margin-top:12px;"><div class="fg"><label>Forma de pago</label><select id="evPago"><option value="efectivo">efectivo</option><option value="transferencia">transferencia</option></select></div><div class="fg"><label>Estado de pago</label><select id="evEstado"><option value="pagado">pagado</option><option value="debe">debe</option></select></div></div>
+    <div class="fr" style="margin-top:12px;">
+      <div class="fg"><label>Forma de pago</label>
+        <div class="chk-row" id="evPagoRow">
+          <button class="chk-btn" data-val="efectivo" data-bg="#E6F1FB" data-color="#185FA5" onclick="selChk('evPagoRow','evPago',this)">Efectivo</button>
+          <button class="chk-btn" data-val="transferencia" data-bg="#E1F5EE" data-color="#0F6E56" onclick="selChk('evPagoRow','evPago',this)">Transferencia</button>
+        </div>
+        <input type="hidden" id="evPago" value="efectivo"/>
+      </div>
+      <div class="fg"><label>Estado de pago</label>
+        <div class="chk-row" id="evEstadoRow">
+          <button class="chk-btn" data-val="pagado" data-bg="#EAF3DE" data-color="#3B6D11" onclick="selChk('evEstadoRow','evEstado',this)">Pagado</button>
+          <button class="chk-btn" data-val="debe" data-bg="#FCEBEB" data-color="#A32D2D" onclick="selChk('evEstadoRow','evEstado',this)">Debe</button>
+        </div>
+        <input type="hidden" id="evEstado" value="pagado"/>
+      </div>
+    </div>
     <div class="dr"><span class="dl">¿Entregado?</span><div class="tw" id="togEv"><div class="tt" id="tEv"></div><span class="tx" id="txEv">no entregado</span></div></div>
     <div class="fg"><label>Nota</label><textarea id="evNota"></textarea></div>
     <input type="hidden" id="evId" />
+    <input type="hidden" id="evLocH" value="leonel"/>
+    <input type="hidden" id="evTipoH" value="normal"/>
     <div class="ma">
       <button class="btn danger" id="btnDelVenta" style="margin-right:auto;">Eliminar</button>
       <button class="btn comprobante" id="btnEvComprobante">📄 Comp.</button>
@@ -1598,6 +1630,7 @@ async function doLogin(){
     }
     document.getElementById('saleDate').value=dateMza();
     await loadFromDB();setupRealtime();renderAll();
+    try{const savedSec=localStorage.getItem('armadito_sec');if(savedSec&&document.getElementById('sec-'+savedSec))showSec(savedSec);}catch(e){}
   }else{document.getElementById('loginError').textContent='Usuario o contraseña incorrectos';}
 }
 function doLogout(){cur=null;if(syncChannel){db.removeChannel(syncChannel);syncChannel=null;}try{localStorage.removeItem('armadito_user');}catch(e){}document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';document.getElementById('mainScreen').classList.remove('active');document.getElementById('loginScreen').classList.add('active');}
@@ -1606,6 +1639,7 @@ function doLogout(){cur=null;if(syncChannel){db.removeChannel(syncChannel);syncC
    NAV — desktop + móvil
 ══════════════════════════════════════ */
 function showSec(id){
+  try{localStorage.setItem('armadito_sec',id);}catch(e){}
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nb,.nbi').forEach(b=>b.classList.remove('active'));
   document.getElementById('sec-'+id).classList.add('active');
@@ -1702,7 +1736,7 @@ function renderSaleItems(){const loc=document.getElementById('saleLoc').value;do
 function siCh(el){const i=+el.dataset.si,r=el.dataset.r;if(r==='prod'){sItems[i].pid=el.value?+el.value:'';sItems[i].vi=-1;renderSaleItems();}else if(r==='var'){sItems[i].vi=+el.value;updateSaleTotal();}else if(r==='qty'){sItems[i].qty=Math.max(1,+el.value||1);updateSaleTotal();}else if(r==='del'){sItems.splice(i,1);if(!sItems.length)sItems=[{pid:'',vi:-1,qty:1}];renderSaleItems();}}
 function updateSaleTotal(){const movil=document.getElementById('saleTipo').value==='movil';let sub=0;sItems.forEach(it=>{const p=products.find(x=>x.id===it.pid);if(p&&it.vi>=0)sub+=vPr(p.variants[it.vi],movil)*it.qty;});const disc=parseFloat(document.getElementById('saleDiscount').value)||0,total=Math.max(0,sub-disc);document.getElementById('saleSubtotal').textContent=fmtMoney(sub);document.getElementById('saleTotal').textContent=fmtMoney(total);renderGananciaRow('saleGananciaRow','saleGanancia',calcGananciaItems(sItems,movil,total));}
 async function confirmSale(){const loc=document.getElementById('saleLoc').value,movil=document.getElementById('saleTipo').value==='movil';const ok=sItems.filter(i=>i.pid&&i.vi>=0);if(!ok.length){showMsg('Elegí al menos un producto con variante');return;}const errs=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];if(it.qty>vSt(v,loc))errs.push(`${p.name}: solo hay ${vSt(v,loc)}`);});if(errs.length){showMsg('Error: '+errs.join(', '));return;}let subtotal=0;const lines=[],itemsRaw=[],mp=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];const precio=vPr(v,movil);subtotal+=precio*it.qty;setVSt(v,loc,Math.max(0,vSt(v,loc)-it.qty));lines.push(`${it.qty}x ${p.name} ${vLbl(v)}`);itemsRaw.push({pid:it.pid,vi:it.vi,qty:it.qty,priceSnapshot:precio,costoSnapshot:vCosto(v)});if(!mp.includes(p))mp.push(p);});const disc=parseFloat(document.getElementById('saleDiscount').value)||0,total=Math.max(0,subtotal-disc);const v={id:nVid++,client:document.getElementById('saleClient').value.trim(),date:document.getElementById('saleDate').value,time:timeMza(),loc,tipo:document.getElementById('saleTipo').value,items:lines,subtotal,discount:disc,total,payMethod:document.getElementById('salePago').value,payStatus:document.getElementById('saleEstado').value,delivered:togS.sale,note:document.getElementById('saleNota').value.trim(),user:cur,itemsRaw};ventas.push(v);await saveVenta(v);for(const p of mp)await saveProduct(p);sItems=[{pid:'',vi:-1,qty:1}];document.getElementById('saleClient').value='';document.getElementById('saleNota').value='';document.getElementById('saleDate').value=dateMza();document.getElementById('saleTipo').value='normal';document.getElementById('saleDiscount').value='0';setTog('sale',false);renderAll();showMsg('Venta confirmada. Total: '+fmtMoney(total),true);showSec('ventas');}
-function openEditVenta(id){const v=ventas.find(x=>x.id===id);if(!v)return;document.getElementById('evId').value=id;document.getElementById('evClient').value=v.client||'';document.getElementById('evDate').value=v.date||'';document.getElementById('evLoc').value=v.loc||'leonel';document.getElementById('evTipo').value=v.tipo||'normal';document.getElementById('evPago').value=v.payMethod||'efectivo';document.getElementById('evEstado').value=v.payStatus||'pagado';document.getElementById('evDiscount').value=v.discount||0;setTog('ev',!!v.delivered);document.getElementById('evNota').value=v.note||'';eItems=(v.itemsRaw||[]).map(i=>({...i}));if(!eItems.length)eItems=[{pid:'',vi:-1,qty:1}];renderEvItems();openM('mVenta');}
+function openEditVenta(id){const v=ventas.find(x=>x.id===id);if(!v)return;document.getElementById('evId').value=id;document.getElementById('evClient').value=v.client||'';document.getElementById('evDate').value=v.date||'';resetChk('evLocRow','evLoc',v.loc||'leonel');resetChk('evTipoRow','evTipo',v.tipo||'normal');resetChk('evPagoRow','evPago',v.payMethod||'efectivo');resetChk('evEstadoRow','evEstado',v.payStatus||'pagado');document.getElementById('evDiscount').value=v.discount||0;setTog('ev',!!v.delivered);document.getElementById('evNota').value=v.note||'';eItems=(v.itemsRaw||[]).map(i=>({...i}));if(!eItems.length)eItems=[{pid:'',vi:-1,qty:1}];renderEvItems();openM('mVenta');}
 function renderEvItems(){const loc=document.getElementById('evLoc').value;document.getElementById('evItems').innerHTML=eItems.map((item,i)=>{const p=products.find(x=>x.id===item.pid);const snap=item.priceSnapshot!=null?` · ${fmtMoney(item.priceSnapshot)}`:'';return `<div class="si"><select data-ei="${i}" data-r="prod"><option value="">— Producto —</option>${[...products].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(pr=>`<option value="${pr.id}"${item.pid===pr.id?' selected':''}>${pr.name}</option>`).join('')}</select><select data-ei="${i}" data-r="var"${!p?' disabled':''}><option value="-1">— Variante —</option>${p?varOpts(item.pid,item.vi,loc):''}</select><input type="number" data-ei="${i}" data-r="qty" min="1" value="${item.qty}" style="width:64px;" inputmode="numeric" /><span class="dp">${snap}</span><button class="btn danger" data-ei="${i}" data-r="del" style="padding:6px 10px;min-height:36px;">×</button></div>`;}).join('');document.querySelectorAll('[data-ei]').forEach(el=>{if(el.dataset.r==='del')el.addEventListener('click',()=>eiCh(el));else el.addEventListener('change',()=>eiCh(el));});updateEvTotal();}
 function eiCh(el){const i=+el.dataset.ei,r=el.dataset.r;if(r==='prod'){eItems[i].pid=el.value?+el.value:'';eItems[i].vi=-1;eItems[i].priceSnapshot=null;eItems[i].costoSnapshot=null;renderEvItems();}else if(r==='var'){eItems[i].vi=+el.value;eItems[i].priceSnapshot=null;eItems[i].costoSnapshot=null;updateEvTotal();}else if(r==='qty'){eItems[i].qty=Math.max(1,+el.value||1);updateEvTotal();}else if(r==='del'){eItems.splice(i,1);if(!eItems.length)eItems=[{pid:'',vi:-1,qty:1}];renderEvItems();}}
 function updateEvTotal(){const movil=document.getElementById('evTipo').value==='movil';let sub=0;eItems.forEach(it=>{const p=products.find(x=>x.id===it.pid);if(!p||it.vi<0)return;const precio=it.priceSnapshot!=null?it.priceSnapshot:vPr(p.variants[it.vi],movil);sub+=precio*it.qty;});const disc=parseFloat(document.getElementById('evDiscount').value)||0,total=Math.max(0,sub-disc);document.getElementById('evSubtotal').textContent=fmtMoney(sub);document.getElementById('evTotal').textContent=fmtMoney(total);let ct=0,okC=false;eItems.forEach(it=>{const p=products.find(x=>x.id===it.pid);if(!p||it.vi<0)return;const vr=p.variants[it.vi];const c=it.costoSnapshot!=null?it.costoSnapshot:vCosto(vr);if(c==null)return;okC=true;ct+=c*it.qty;});renderGananciaRow('evGananciaRow','evGanancia',okC?total-ct:null);}
@@ -2478,6 +2512,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
         document.getElementById('loginScreen').classList.remove('active');
         document.getElementById('mainScreen').classList.add('active');
         renderAll();
+        try{const savedSec=localStorage.getItem('armadito_sec');if(savedSec&&document.getElementById('sec-'+savedSec))showSec(savedSec);}catch(e){}
       }
       return;
     }
@@ -2524,7 +2559,7 @@ function showGTab(id,btn){
   if(pnl){pnl.style.display='block';pnl.classList.add('on');}
   if(btn)btn.classList.add('on');
   if(id==='stk')renderGStock();
-  if(id==='nv'){gVItems=[{pid:null,vi:null,qty:1}];renderGItems();}
+  if(id==='nv'){if(!_gEditandoId){gVItems=[{pid:null,vi:null,qty:1}];}renderGItems();}
   if(id==='hi')renderGHist();
   if(id==='ca')renderGCaja();
 }
@@ -2569,7 +2604,7 @@ function selPago(p){
     ef.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #185FA5;background:#E6F1FB;color:#0C447C;font-size:13px;font-weight:600;cursor:pointer;';
     tr.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;';
   } else {
-    tr.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #1D9E75;background:#E1F5EE;color:#085041;font-size:13px;font-weight:600;cursor:pointer;';
+    tr.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid #C026D3;background:#FCE7FF;color:#86198F;font-size:13px;font-weight:600;cursor:pointer;';
     ef.style.cssText='flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg);color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;';
   }
 }
@@ -2720,7 +2755,7 @@ function renderGHist(){
   const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
   if(!hist.length){document.getElementById('gListHi').innerHTML='<p style="text-align:center;padding:32px;font-size:13px;color:var(--txt2);">Sin actividad aún</p>';return;}
   document.getElementById('gListHi').innerHTML=hist.map(v=>{
-        if(v.type==='rep')return '<div style="background:#E1F5EE;border-left:3px solid #1D9E75;padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#C5EDDE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#085041;font-size:13px;margin-top:4px;font-weight:500;">'+(v.desc||'')+'</div></div><span style="color:#085041;font-size:11px;">'+(v.hora||'')+'</span></div></div>';
+        if(v.type==='rep')return '<div style="background:#F0EDE8;border-left:3px solid #9C8B7A;padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#E5DDD5;color:#5C4B3A;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#5C4B3A;font-size:13px;margin-top:4px;font-weight:500;">'+(v.desc||'')+'</div></div><span style="color:#9C8B7A;font-size:11px;">'+(v.hora||'')+'</span></div></div>';
     const e=GEDIF[v.edif];
     const hStyle=e.hc==="gHpj"?"background:#FAEEDA;border-left:3px solid #BA7517;":"background:#F3E8FF;border-left:3px solid #7C3AED;";return `<div class="${e.hc}" style="${hStyle}padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
@@ -2736,7 +2771,7 @@ function renderGHist(){
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${v.ef>0?`<span style="background:#E6F1FB;color:#0C447C;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">efectivo ${gFmt(v.ef)}</span>`:''}
-          ${v.tr>0?`<span style="background:#E1F5EE;color:#085041;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">transferencia ${gFmt(v.tr)}</span>`:''}
+          ${v.tr>0?`<span style="background:#FCE7FF;color:#86198F;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">transferencia ${gFmt(v.tr)}</span>`:''}
         </div>
         <div style="display:flex;gap:6px;">
           <button style="padding:6px 12px;border-radius:6px;border:2px solid ${v.edif==='pj'?'#BA7517':'#7C3AED'};background:#fff;cursor:pointer;font-size:11px;color:${e.col};font-weight:700;" onclick="editarGVenta(${v.id})">Editar</button>
@@ -2825,7 +2860,7 @@ function renderMovVivo(){
   const el=document.getElementById('movVivo');if(!el)return;
   if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin ventas aún.</p>';return;}
   el.innerHTML=hist.map(v=>{
-    if(v.type==='rep')return `<div style="background:#E1F5EE;border-left:3px solid #1D9E75;padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;font-size:13px;color:#085041;">${v.desc} · ${v.hora}</div>`;
+    if(v.type==='rep')return `<div style="background:#F0EDE8;border-left:3px solid #9C8B7A;padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;font-size:13px;color:#5C4B3A;">${v.desc} · ${v.hora}</div>`;
     const col=v.edif==='pj'?'#FAEEDA':'#F3E8FF';
     const lbl=v.edif==='pj'?'Poder Judicial':'Palacio de Justicia';
     const tc=v.edif==='pj'?'#633806':'#26215C';
@@ -2838,7 +2873,7 @@ function renderMovVivo(){
       ${v.its.map(it=>`<div style="color:${tc};font-size:12px;padding:1px 0;">${it.qty}x ${it.n}</div>`).join('')}
       <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;">
         ${v.ef>0?`<span style="background:#E6F1FB;color:#0C447C;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;">ef. ${gFmt(v.ef)}</span>`:''}
-        ${v.tr>0?`<span style="background:#E1F5EE;color:#085041;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;">trans. ${gFmt(v.tr)}</span>`:''}
+        ${v.tr>0?`<span style="background:#FCE7FF;color:#86198F;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;">trans. ${gFmt(v.tr)}</span>`:''}
         ${v.nota?`<span style="font-size:10px;color:${tc};font-style:italic;">📝 ${v.nota}</span>`:''}
       </div>
     </div>`;
@@ -3038,7 +3073,7 @@ async function renderHistJornadas(){
           +'<div style="background:#FAEEDA;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#854F0B;font-weight:600;">PODER JUDICIAL</div><div style="font-size:13px;color:#BA7517;font-weight:700;">'+gFmt(j.totPJ||0)+' · '+(j.udsPJ||0)+' uds</div></div>'
           +'<div style="background:#F3E8FF;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#3C3489;font-weight:600;">PALACIO</div><div style="font-size:13px;color:#7C3AED;font-weight:700;">'+gFmt(j.totPA||0)+' · '+(j.udsPA||0)+' uds</div></div>'
           +'<div style="background:#E6F1FB;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#0C447C;font-weight:600;">EFECTIVO</div><div style="font-size:13px;color:#185FA5;font-weight:700;">'+gFmt(j.ef||0)+'</div></div>'
-          +'<div style="background:#E1F5EE;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#085041;font-weight:600;">TRANSFERENCIA</div><div style="font-size:13px;color:#1D9E75;font-weight:700;">'+gFmt(j.tr||0)+'</div></div>'
+          +'<div style="background:#FCE7FF;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#86198F;font-weight:600;">TRANSFERENCIA</div><div style="font-size:13px;color:#C026D3;font-weight:700;">'+gFmt(j.tr||0)+'</div></div>'
         +'</div>'
         +'<div id="jornadaDetalle_'+i+'" style="display:none;padding-top:8px;border-top:0.5px solid var(--brd);">'
           +(vendidos.length?'<p style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:4px;">VENDIDO</p>'+vendidos.map(it=>'<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>'+it.nombre+'</span><span style="color:#3B6D11;font-weight:600;">'+it.vendido+'</span></div>').join(''):'')
