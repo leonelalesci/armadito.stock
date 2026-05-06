@@ -1553,8 +1553,10 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'cats'},async()=>{const{data}=await db.from('cats').select('*').eq('id',1).single();if(data)cats=data.data;fillCatF();renderProds();})
     .on('postgres_changes',{event:'*',schema:'public',table:'gastos'},async()=>{const{data}=await db.from('gastos').select('*');if(data)gastos=data.map(r=>r.data);renderGastos();})
     .on('postgres_changes',{event:'*',schema:'public',table:'fraccionar'},async()=>{const{data}=await db.from('fraccionar').select('*');if(data)fracciones=data.map(r=>r.data);renderFraccionar();renderStock();})
-    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async(payload)=>{
-      const prevHist=jornadaMovil&&jornadaMovil.histVentas?[...jornadaMovil.histVentas]:[];
+    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{
+      // Tomar snapshot ANTES de actualizar
+      const prevVentas=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='v').map(v=>v.id):[];
+      const prevReps=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas.filter(v=>v.type==='rep').map(v=>v.id):[];
       const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();
       if(jd)jornadaMovil=jd.data;
       if(cur&&USERS[cur]&&USERS[cur].movil){
@@ -1563,22 +1565,19 @@ function setupRealtime(){
         renderResumenMovil();renderMovVivo();
         const stkPnl=document.getElementById('mPnlStk');
         if(stkPnl&&stkPnl.style.display!=='none')renderMovStockGianella();
-        // Detectar si Gianella registró una venta nueva
+        // Detectar ventas nuevas de Gianella
         const newHist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
-        const newVentas=newHist.filter(v=>v.type==='v'&&!prevHist.find(p=>p.id===v.id));
+        const newVentas=newHist.filter(v=>v.type==='v'&&!prevVentas.includes(v.id));
+        const newReps=newHist.filter(v=>v.type==='rep'&&!prevReps.includes(v.id));
         if(newVentas.length){
-          // Toast de notificación
           const tot=newVentas.reduce((s,v)=>s+v.tot,0);
           const uds=newVentas.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
           showGianellaAlert(`🛍️ Gianella vendió ${uds} unidad${uds!==1?'es':''} · ${gFmt(tot)}`);
-          // Badge en tab Jornada
-          setJornadaBadge(true);
+          setResumenBadge(true);
         }
-        // Detectar reposición nueva
-        const newReps=newHist.filter(v=>v.type==='rep'&&!prevHist.find(p=>p.id===v.id));
         if(newReps.length){
           showGianellaAlert('📦 Nueva reposición registrada');
-          setJornadaBadge(true);
+          setResumenBadge(true);
         }
       }
     })
@@ -1601,12 +1600,12 @@ function showMsg(msg,ok=false){
   d.style.cssText=`position:fixed;bottom:${window.innerWidth<600?'90px':'20px'};left:50%;transform:translateX(-50%);z-index:9999;background:${ok?'var(--green-l)':'var(--bg)'};border:0.5px solid ${ok?'var(--green-m)':'var(--brd2)'};border-radius:12px;padding:12px 20px;font-size:14px;color:${ok?'var(--green)':'var(--txt)'};z-index:999;box-shadow:0 4px 20px var(--shadow);max-width:90%;text-align:center;font-family:inherit;`;
   d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),3200);
 }
-function setJornadaBadge(on){
-  const btn=document.getElementById('mTabJor');
+function setResumenBadge(on){
+  const btn=document.getElementById('mTabRes');
   if(!btn)return;
-  let dot=document.getElementById('jornadaNotifDot');
+  let dot=document.getElementById('resumenNotifDot');
   if(on){
-    if(!dot){dot=document.createElement('span');dot.id='jornadaNotifDot';dot.style.cssText='display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-left:5px;vertical-align:middle;animation:pulse 1.5s infinite;flex-shrink:0;';btn.appendChild(dot);}
+    if(!dot){dot=document.createElement('span');dot.id='resumenNotifDot';dot.style.cssText='display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-left:5px;vertical-align:middle;animation:pulse 1.5s infinite;flex-shrink:0;';btn.appendChild(dot);}
   } else {
     if(dot)dot.remove();
   }
@@ -2629,14 +2628,20 @@ function renderGStock(){
     if(!p)return '';
     const v=p.variants[it.vi];
     const disp=it.qty-(it.vendido||0);
+    const sinStock=disp===0;
     const low=disp<=1;
-    return `<tr style="${low?'background:rgba(163,45,45,0.07);':''}">
+    const badge=sinStock
+      ?'<span style="font-size:10px;background:#A32D2D;color:#fff;padding:1px 6px;border-radius:20px;font-weight:600;margin-left:4px;">sin stock</span>'
+      :low
+      ?'<span style="font-size:10px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:20px;font-weight:600;margin-left:4px;">stock bajo</span>'
+      :'';
+    return `<tr style="${low?'background:rgba(163,45,45,0.10);':''}">
       <td style="padding:8px 12px;font-size:13px;">
-        <span style="font-weight:700;">${p.name}${v.name&&v.name.trim()?` ${v.name}`:''}</span>${v.weight&&v.weight.trim()?`<br><span style="font-size:11px;color:var(--txt2);font-weight:400;">${v.weight}</span>`:''} ${low?'<span style="font-size:10px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:20px;font-weight:500;margin-left:2px;">poco</span>':''}
+        <span style="font-weight:700;">${p.name}${v.name&&v.name.trim()?` ${v.name}`:''}</span>${v.weight&&v.weight.trim()?`<br><span style="font-size:11px;color:var(--txt2);font-weight:400;">${v.weight}</span>`:''} ${badge}
       </td>
       <td style="padding:8px;text-align:center;color:#C026D3;font-weight:600;font-size:13px;">${v.priceMovil?gFmt(v.priceMovil):'-'}</td>
-      <td style="padding:8px;text-align:center;font-weight:700;color:#3B6D11;font-size:14px;">${disp}</td>
-      <td style="padding:8px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">${it.vendido||0}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:${sinStock?'#A32D2D':'#3B6D11'};font-size:14px;">${disp}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:#B45309;font-size:14px;">${it.vendido||0}</td>
     </tr>`;
   }).join('');
 }
@@ -3158,13 +3163,13 @@ function showMTab(id,btn){
   if(pnl)pnl.style.display='block';
   if(btn){btn.style.color='var(--amber)';btn.style.borderBottom='2px solid var(--amber)';btn.style.fontWeight='700';}
   if(id==='stk')renderMovStockGianella();
-  if(id==='res'){renderResumenMovil();renderMovVivo();}
-  if(id==='jor'){setJornadaBadge(false);renderMovCarrito();renderMovRepItems();renderHistJornadas();}
+  if(id==='res'){setResumenBadge(false);renderResumenMovil();renderMovVivo();}
+  if(id==='jor'){renderMovCarrito();renderMovRepItems();renderHistJornadas();}
 }
 function renderMovStockGianella(){
   const el=document.getElementById('movStockGianella');if(!el)return;
   if(!jornadaMovil||!jornadaMovil.items||!jornadaMovil.activa){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">No hay jornada activa.</p>';return;}
-  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:var(--bg2);"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#A32D2D;border-bottom:0.5px solid var(--brd);">Vend.</th></tr></thead><tbody>'+jornadaMovil.items.map(it=>{const p=products.find(x=>x.id===it.pid);if(!p)return '';const v=p.variants[it.vi];const disp=it.qty-(it.vendido||0);const low=disp<=1;const namePart=p.name+(v.name&&v.name.trim()?' '+v.name:'');const weightPart=v.weight&&v.weight.trim()?v.weight:'';return '<tr style="'+(low?'background:rgba(163,45,45,0.07);':'')+'">'+'<td style="padding:7px 10px;"><span style="font-weight:700;font-size:13px;">'+namePart+'</span>'+(weightPart?'<br><span style="font-size:11px;color:var(--txt2);font-weight:400;">'+weightPart+'</span>':'')+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:'+(low?'#A32D2D':'#3B6D11')+';font-size:14px;">'+disp+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:#A32D2D;font-size:14px;">'+(it.vendido||0)+'</td>'+'</tr>';}).join('')+'</tbody></table>';
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:var(--bg2);"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--txt2);border-bottom:0.5px solid var(--brd);">Producto</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#3B6D11;border-bottom:0.5px solid var(--brd);">Disp.</th><th style="padding:7px 6px;text-align:center;font-size:11px;font-weight:600;color:#B45309;border-bottom:0.5px solid var(--brd);">Vend.</th></tr></thead><tbody>'+jornadaMovil.items.map(it=>{const p=products.find(x=>x.id===it.pid);if(!p)return '';const v=p.variants[it.vi];const disp=it.qty-(it.vendido||0);const sinStock=disp===0;const low=disp<=1;const badge=sinStock?'<span style="font-size:10px;background:#A32D2D;color:#fff;padding:1px 5px;border-radius:20px;font-weight:600;margin-left:4px;white-space:nowrap;">sin stock</span>':low?'<span style="font-size:10px;background:#FCEBEB;color:#791F1F;padding:1px 5px;border-radius:20px;font-weight:600;margin-left:4px;white-space:nowrap;">stock bajo</span>':'';const namePart=p.name+(v.name&&v.name.trim()?' '+v.name:'');const weightPart=v.weight&&v.weight.trim()?v.weight:'';return '<tr style="'+(low?'background:rgba(163,45,45,0.10);':'')+'">'+'<td style="padding:7px 10px;"><span style="font-weight:700;font-size:13px;">'+namePart+'</span>'+badge+(weightPart?'<br><span style="font-size:11px;color:var(--txt2);font-weight:400;">'+weightPart+'</span>':'')+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:'+(sinStock?'#A32D2D':'#3B6D11')+';font-size:14px;">'+disp+'</td>'+'<td style="padding:7px 6px;text-align:center;font-weight:700;color:#B45309;font-size:14px;">'+(it.vendido||0)+'</td>'+'</tr>';}).join('')+'</tbody></table>';
 }
 async function renderHistJornadas(){
   const el=document.getElementById('movHistJornadas');if(!el)return;
