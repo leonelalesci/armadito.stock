@@ -705,6 +705,8 @@ a { color: var(--green); }
   .nav-bottom { display: none; }
   .content { padding-bottom: 24px; }
 }
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(1.3);}}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateX(-50%) translateY(-10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 </style>
 </head>
 <body>
@@ -1551,15 +1553,35 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'cats'},async()=>{const{data}=await db.from('cats').select('*').eq('id',1).single();if(data)cats=data.data;fillCatF();renderProds();})
     .on('postgres_changes',{event:'*',schema:'public',table:'gastos'},async()=>{const{data}=await db.from('gastos').select('*');if(data)gastos=data.map(r=>r.data);renderGastos();})
     .on('postgres_changes',{event:'*',schema:'public',table:'fraccionar'},async()=>{const{data}=await db.from('fraccionar').select('*');if(data)fracciones=data.map(r=>r.data);renderFraccionar();renderStock();})
-    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async()=>{const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();if(jd)jornadaMovil=jd.data;
+    .on('postgres_changes',{event:'*',schema:'public',table:'jornada_movil'},async(payload)=>{
+      const prevHist=jornadaMovil&&jornadaMovil.histVentas?[...jornadaMovil.histVentas]:[];
+      const{data:jd}=await db.from('jornada_movil').select('*').eq('id',1).single();
+      if(jd)jornadaMovil=jd.data;
       if(cur&&USERS[cur]&&USERS[cur].movil){
         renderGianellaScreen();
       } else {
         renderResumenMovil();renderMovVivo();
-        // Actualizar subtab stock si está activo
         const stkPnl=document.getElementById('mPnlStk');
         if(stkPnl&&stkPnl.style.display!=='none')renderMovStockGianella();
-      }})
+        // Detectar si Gianella registró una venta nueva
+        const newHist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
+        const newVentas=newHist.filter(v=>v.type==='v'&&!prevHist.find(p=>p.id===v.id));
+        if(newVentas.length){
+          // Toast de notificación
+          const tot=newVentas.reduce((s,v)=>s+v.tot,0);
+          const uds=newVentas.reduce((s,v)=>s+v.its.reduce((a,i)=>a+i.qty,0),0);
+          showGianellaAlert(`🛍️ Gianella vendió ${uds} unidad${uds!==1?'es':''} · ${gFmt(tot)}`);
+          // Badge en tab Jornada
+          setJornadaBadge(true);
+        }
+        // Detectar reposición nueva
+        const newReps=newHist.filter(v=>v.type==='rep'&&!prevHist.find(p=>p.id===v.id));
+        if(newReps.length){
+          showGianellaAlert('📦 Nueva reposición registrada');
+          setJornadaBadge(true);
+        }
+      }
+    })
     .subscribe();
 }
 
@@ -1569,10 +1591,25 @@ function setupRealtime(){
 function askConfirm(msg,onYes){document.getElementById('confirmMsg').textContent=msg;confirmCb=onYes;openM('mConfirm');}
 document.getElementById('btnConfirmYes').addEventListener('click',()=>{closeM('mConfirm');if(confirmCb)confirmCb();confirmCb=null;});
 document.getElementById('btnConfirmNo').addEventListener('click',()=>{closeM('mConfirm');confirmCb=null;});
+function showGianellaAlert(msg){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9999;background:#9A3412;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:90%;text-align:center;font-family:inherit;animation:fadeSlideIn 0.3s ease;';
+  d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),4000);
+}
 function showMsg(msg,ok=false){
   const d=document.createElement('div');
   d.style.cssText=`position:fixed;bottom:${window.innerWidth<600?'90px':'20px'};left:50%;transform:translateX(-50%);z-index:9999;background:${ok?'var(--green-l)':'var(--bg)'};border:0.5px solid ${ok?'var(--green-m)':'var(--brd2)'};border-radius:12px;padding:12px 20px;font-size:14px;color:${ok?'var(--green)':'var(--txt)'};z-index:999;box-shadow:0 4px 20px var(--shadow);max-width:90%;text-align:center;font-family:inherit;`;
   d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),3200);
+}
+function setJornadaBadge(on){
+  const btn=document.getElementById('mTabJor');
+  if(!btn)return;
+  let dot=document.getElementById('jornadaNotifDot');
+  if(on){
+    if(!dot){dot=document.createElement('span');dot.id='jornadaNotifDot';dot.style.cssText='display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-left:5px;vertical-align:middle;animation:pulse 1.5s infinite;flex-shrink:0;';btn.appendChild(dot);}
+  } else {
+    if(dot)dot.remove();
+  }
 }
 function vLbl(v){if(v.name&&v.weight)return v.name+' – '+v.weight;if(v.name)return v.name;if(v.weight)return v.weight;return 'Sin nombre';}
 function vSt(v,l){return l==='leonel'?v.stockLeonel:v.stockNagira;}
@@ -1753,7 +1790,7 @@ function renderVentas(){
   document.querySelectorAll('[data-comp]').forEach(b=>b.addEventListener('click',()=>{const v=ventas.find(x=>x.id===+b.dataset.comp);if(v)openComprobante(v);}));
 }
 function varOpts(pid,selVi,loc){const p=products.find(x=>x.id===pid);if(!p)return '';return p.variants.map((v,vi)=>`<option value="${vi}"${selVi===vi?' selected':''}>${vLbl(v)} — disp: ${vSt(v,loc)}</option>`).join('');}
-function renderSaleItems(){const loc=document.getElementById('saleLoc').value;document.getElementById('saleItems').innerHTML=sItems.map((item,i)=>{const p=products.find(x=>x.id===item.pid),v=p&&item.vi>=0?p.variants[item.vi]:null,av=v?vSt(v,loc):0;return `<div class="si"><select data-si="${i}" data-r="prod"><option value="">— Producto —</option>${[...products].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(pr=>`<option value="${pr.id}"${item.pid===pr.id?' selected':''}>${pr.name}</option>`).join('')}</select><select data-si="${i}" data-r="var"${!p?' disabled':''}><option value="-1">— Variante —</option>${p?varOpts(item.pid,item.vi,loc):''}</select><div style="display:flex;align-items:center;gap:4px;"><button type="button" onclick="sItems[${i}].qty=Math.max(1,sItems[${i}].qty-1);renderSaleItems();" style="width:32px;height:36px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg2);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">−</button><span style="min-width:24px;text-align:center;font-size:15px;font-weight:700;">${item.qty}</span><button type="button" onclick="sItems[${i}].qty=(sItems[${i}].qty||1)+1;renderSaleItems();" style="width:32px;height:36px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg2);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">+</button></div><span class="dp">${v?'disp:'+av:''}</span><button class="btn danger" data-si="${i}" data-r="del" style="padding:6px 10px;min-height:36px;">×</button></div>`;}).join('');document.querySelectorAll('[data-si]').forEach(el=>{if(el.dataset.r==='del')el.addEventListener('click',()=>siCh(el));else if(el.tagName==='SELECT')el.addEventListener('change',()=>siCh(el));});updateSaleTotal();}
+function renderSaleItems(){const loc=document.getElementById('saleLoc').value;document.getElementById('saleItems').innerHTML=sItems.map((item,i)=>{const p=products.find(x=>x.id===item.pid),v=p&&item.vi>=0?p.variants[item.vi]:null,av=v?vSt(v,loc):0;return `<div class="si"><select data-si="${i}" data-r="prod"><option value="">— Producto —</option>${[...products].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(pr=>`<option value="${pr.id}"${item.pid===pr.id?' selected':''}>${pr.name}</option>`).join('')}</select><select data-si="${i}" data-r="var"${!p?' disabled':''}><option value="-1">— Variante —</option>${p?varOpts(item.pid,item.vi,loc):''}</select><div style="display:flex;align-items:center;gap:4px;"><button type="button" onclick="sItems[${i}].qty=Math.max(1,sItems[${i}].qty-1);renderSaleItems();" style="width:32px;height:36px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg2);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">−</button><span style="min-width:24px;text-align:center;font-size:15px;font-weight:700;">${item.qty}</span><button type="button" onclick="sItems[${i}].qty=(sItems[${i}].qty||1)+1;renderSaleItems();" style="width:32px;height:36px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg2);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">+</button></div><button class="btn danger" data-si="${i}" data-r="del" style="padding:6px 10px;min-height:36px;">×</button></div>`;}).join('');document.querySelectorAll('[data-si]').forEach(el=>{if(el.dataset.r==='del')el.addEventListener('click',()=>siCh(el));else if(el.tagName==='SELECT')el.addEventListener('change',()=>siCh(el));});updateSaleTotal();}
 function siCh(el){const i=+el.dataset.si,r=el.dataset.r;if(r==='prod'){sItems[i].pid=el.value?+el.value:'';sItems[i].vi=-1;renderSaleItems();}else if(r==='var'){sItems[i].vi=+el.value;updateSaleTotal();}else if(r==='qty'){sItems[i].qty=Math.max(1,+el.value||1);updateSaleTotal();}else if(r==='del'){sItems.splice(i,1);if(!sItems.length)sItems=[{pid:'',vi:-1,qty:1}];renderSaleItems();}}
 function updateSaleTotal(){const movil=document.getElementById('saleTipo').value==='movil';let sub=0;sItems.forEach(it=>{const p=products.find(x=>x.id===it.pid);if(p&&it.vi>=0)sub+=vPr(p.variants[it.vi],movil)*it.qty;});const disc=parseFloat(document.getElementById('saleDiscount').value)||0,total=Math.max(0,sub-disc);document.getElementById('saleSubtotal').textContent=fmtMoney(sub);document.getElementById('saleTotal').textContent=fmtMoney(total);renderGananciaRow('saleGananciaRow','saleGanancia',calcGananciaItems(sItems,movil,total));}
 async function confirmSale(){const loc=document.getElementById('saleLoc').value,movil=document.getElementById('saleTipo').value==='movil';const ok=sItems.filter(i=>i.pid&&i.vi>=0);if(!ok.length){showMsg('Elegí al menos un producto con variante');return;}const errs=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];if(it.qty>vSt(v,loc))errs.push(`${p.name}: solo hay ${vSt(v,loc)}`);});if(errs.length){showMsg('Error: '+errs.join(', '));return;}let subtotal=0;const lines=[],itemsRaw=[],mp=[];ok.forEach(it=>{const p=products.find(x=>x.id===it.pid),v=p.variants[it.vi];const precio=vPr(v,movil);subtotal+=precio*it.qty;setVSt(v,loc,Math.max(0,vSt(v,loc)-it.qty));lines.push(`${it.qty}x ${p.name} ${vLbl(v)}`);itemsRaw.push({pid:it.pid,vi:it.vi,qty:it.qty,priceSnapshot:precio,costoSnapshot:vCosto(v)});if(!mp.includes(p))mp.push(p);});const disc=parseFloat(document.getElementById('saleDiscount').value)||0,total=Math.max(0,subtotal-disc);const v={id:nVid++,client:document.getElementById('saleClient').value.trim(),date:document.getElementById('saleDate').value,time:timeMza(),loc,tipo:document.getElementById('saleTipo').value,items:lines,subtotal,discount:disc,total,payMethod:document.getElementById('salePago').value,payStatus:document.getElementById('saleEstado').value,delivered:togS.sale,note:document.getElementById('saleNota').value.trim(),user:cur,itemsRaw};ventas.push(v);await saveVenta(v);for(const p of mp)await saveProduct(p);sItems=[{pid:'',vi:-1,qty:1}];document.getElementById('saleClient').value='';document.getElementById('saleNota').value='';document.getElementById('saleDate').value=dateMza();document.getElementById('saleTipo').value='normal';document.getElementById('saleDiscount').value='0';setTog('sale',false);renderAll();showMsg('Venta confirmada. Total: '+fmtMoney(total),true);showSec('ventas');}
@@ -2776,7 +2813,16 @@ function renderGHist(){
   const hist=jornadaMovil&&jornadaMovil.histVentas?jornadaMovil.histVentas:[];
   if(!hist.length){document.getElementById('gListHi').innerHTML='<p style="text-align:center;padding:32px;font-size:13px;color:var(--txt2);">Sin actividad aún</p>';return;}
   document.getElementById('gListHi').innerHTML=hist.map(v=>{
-        if(v.type==='rep')return '<div style="background:#F1F5F9;border-left:3px solid #64748B;padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="background:#E2E8F0;color:#334155;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span><div style="color:#334155;font-size:13px;margin-top:4px;font-weight:500;">'+(v.desc||'')+'</div></div><span style="color:#64748B;font-size:11px;">'+(v.hora||'')+'</span></div></div>';
+        if(v.type==='rep'){
+          const items=v.desc?v.desc.replace(/^[^:]+:\s*/,'').split(', '):[];
+          return '<div style="background:#F1F5F9;border-left:3px solid #64748B;padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;">'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+            +'<span style="background:#E2E8F0;color:#334155;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;">reposición</span>'
+            +'<span style="color:#64748B;font-size:11px;">'+(v.hora||'')+'</span>'
+            +'</div>'
+            +items.map(it=>'<div style="color:#334155;font-size:13px;padding:1px 0;">• '+it.trim()+'</div>').join('')
+            +'</div>';
+        }
     const e=GEDIF[v.edif];
     const hStyle=e.hc==="gHpj"?"background:#FAEEDA;border-left:3px solid #BA7517;":"background:#F3E8FF;border-left:3px solid #7C3AED;";return `<div class="${e.hc}" style="${hStyle}padding:10px 14px;margin-bottom:8px;border-radius:0 10px 10px 0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
@@ -2867,12 +2913,12 @@ function renderResumenMovil(){
   const el=document.getElementById('movResumen');
   if(!el)return;
   el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-    <div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#854F0B;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Poder Judicial<br>Uds vendidas</div><div style="font-size:20px;font-weight:600;color:#BA7517;">${uPJ}</div></div>
-    <div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#854F0B;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Poder Judicial<br>Total $</div><div style="font-size:20px;font-weight:600;color:#BA7517;">${gFmt(pPJ)}</div></div>
-    <div style="background:#F3E8FF;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3C3489;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Palacio de Justicia<br>Uds vendidas</div><div style="font-size:20px;font-weight:600;color:#7C3AED;">${uPA}</div></div>
-    <div style="background:#F3E8FF;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3C3489;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Palacio de Justicia<br>Total $</div><div style="font-size:20px;font-weight:600;color:#7C3AED;">${gFmt(pPA)}</div></div>
-    <div style="background:var(--bg2);border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Total uds<br>vendidas</div><div style="font-size:20px;font-weight:600;">${uPJ+uPA}</div></div>
-    <div style="background:#EAF3DE;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3B6D11;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;line-height:1.4;">Total $<br>del día</div><div style="font-size:20px;font-weight:600;color:#3B6D11;">${gFmt(pPJ+pPA)}</div></div>
+    <div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#854F0B;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;font-weight:600;">PODER JUDICIAL<br>Uds vendidas</div><div style="font-size:20px;font-weight:700;color:#BA7517;">${uPJ}</div></div>
+    <div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#854F0B;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;font-weight:600;">PODER JUDICIAL<br>Total $</div><div style="font-size:20px;font-weight:700;color:#BA7517;">${gFmt(pPJ)}</div></div>
+    <div style="background:#F3E8FF;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3C3489;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;font-weight:600;">PALACIO DE JUSTICIA<br>Uds vendidas</div><div style="font-size:20px;font-weight:700;color:#7C3AED;">${uPA}</div></div>
+    <div style="background:#F3E8FF;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#3C3489;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;font-weight:600;">PALACIO DE JUSTICIA<br>Total $</div><div style="font-size:20px;font-weight:700;color:#7C3AED;">${gFmt(pPA)}</div></div>
+    <div style="background:var(--bg2);border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;font-weight:600;">TOTAL UDS<br>VENDIDAS</div><div style="font-size:20px;font-weight:700;">${uPJ+uPA}</div></div>
+    <div style="background:#3B6D11;border-radius:var(--radius-md);padding:10px 12px;text-align:center;"><div style="font-size:10px;color:#c8e8a0;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;font-weight:600;">TOTAL $<br>DEL DÍA</div><div style="font-size:20px;font-weight:700;color:#ffffff;">${gFmt(pPJ+pPA)}</div></div>
   </div>`;
 }
 
@@ -2881,7 +2927,16 @@ function renderMovVivo(){
   const el=document.getElementById('movVivo');if(!el)return;
   if(!hist.length){el.innerHTML='<p style="font-size:13px;color:var(--txt2);text-align:center;padding:16px 0;">Sin ventas aún.</p>';return;}
   el.innerHTML=hist.map(v=>{
-    if(v.type==='rep')return `<div style="background:#F1F5F9;border-left:3px solid #64748B;padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;font-size:13px;color:#334155;">${v.desc} · ${v.hora}</div>`;
+    if(v.type==='rep'){
+      const items=v.desc?v.desc.replace(/^[^:]+:\s*/,'').split(', '):[];
+      return `<div style="background:#F1F5F9;border-left:3px solid #64748B;padding:8px 12px;margin-bottom:6px;border-radius:0 8px 8px 0;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="background:#E2E8F0;color:#334155;font-size:10px;padding:2px 6px;border-radius:20px;font-weight:600;">reposición</span>
+          <span style="color:#64748B;font-size:11px;">${v.hora||''}</span>
+        </div>
+        ${items.map(it=>`<div style="color:#334155;font-size:12px;padding:1px 0;">• ${it.trim()}</div>`).join('')}
+      </div>`;
+    }
     const col=v.edif==='pj'?'#FAEEDA':'#F3E8FF';
     const lbl=v.edif==='pj'?'Poder Judicial':'Palacio de Justicia';
     const tc=v.edif==='pj'?'#633806':'#26215C';
@@ -3104,7 +3159,7 @@ function showMTab(id,btn){
   if(btn){btn.style.color='var(--amber)';btn.style.borderBottom='2px solid var(--amber)';btn.style.fontWeight='700';}
   if(id==='stk')renderMovStockGianella();
   if(id==='res'){renderResumenMovil();renderMovVivo();}
-  if(id==='jor'){renderMovCarrito();renderMovRepItems();renderHistJornadas();}
+  if(id==='jor'){setJornadaBadge(false);renderMovCarrito();renderMovRepItems();renderHistJornadas();}
 }
 function renderMovStockGianella(){
   const el=document.getElementById('movStockGianella');if(!el)return;
@@ -3136,7 +3191,7 @@ async function renderHistJornadas(){
           +'<div style="background:#E6F1FB;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#0C447C;font-weight:600;">EFECTIVO</div><div style="font-size:13px;color:#185FA5;font-weight:700;">'+gFmt(j.ef||0)+'</div></div>'
           +'<div style="background:#DCFCE7;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#14532D;font-weight:600;">TRANSFERENCIA</div><div style="font-size:13px;color:#15803D;font-weight:700;">'+gFmt(j.tr||0)+'</div></div>'
           +(j.pagoGianella!=null&&j.pagoGianella>0?'<div style="background:#9A3412;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#FECACA;font-weight:600;">GIANELLA</div><div style="font-size:13px;color:#ffffff;font-weight:700;">'+gFmt(j.pagoGianella)+'</div></div>':'')
-          +(j.ganancia!=null?'<div style="background:'+(j.ganancia>=0?'#EAF3DE':'#FCEBEB')+';border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:'+(j.ganancia>=0?'#3B6D11':'#A32D2D')+';font-weight:600;">GANANCIA</div><div style="font-size:13px;color:'+(j.ganancia>=0?'#3B6D11':'#A32D2D')+';font-weight:700;">'+gFmt(j.ganancia)+'</div></div>':'')
+          +(j.ganancia!=null?'<div style="background:'+(j.ganancia>=0?'#166534':'#7F1D1D')+';border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:'+(j.ganancia>=0?'#BBF7D0':'#FECACA')+';font-weight:600;">GANANCIA</div><div style="font-size:13px;color:#ffffff;font-weight:700;">'+gFmt(j.ganancia)+'</div></div>':'')
         +'</div>'
         +'<div id="jornadaDetalle_'+i+'" style="display:none;padding-top:8px;border-top:0.5px solid var(--brd);">'
           +(vendidos.length?'<p style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:4px;">VENDIDO</p>'+vendidos.map(it=>'<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>'+it.nombre+'</span><span style="color:#3B6D11;font-weight:600;">'+it.vendido+'</span></div>').join(''):'')
