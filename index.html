@@ -929,9 +929,15 @@ a { color: var(--green); }
             <p style="font-size:13px;color:var(--txt2);margin-bottom:14px;">Productos y precios del sistema principal. No descuenta del stock.</p>
             <div id="movCarritoWrap"></div>
             <button id="btnAddMovCarrito" onclick="addMovCarritoItem()" style="width:100%;margin-bottom:14px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;cursor:pointer;">+ Agregar producto</button>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:12px;border-top:0.5px solid var(--brd);">
-              <label style="font-size:13px;color:var(--txt2);white-space:nowrap;">Cambio inicial $</label>
-              <input type="number" id="movCambioI" value="2000" style="flex:1;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;padding-top:12px;border-top:0.5px solid var(--brd);">
+              <div>
+                <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;font-weight:500;">FECHA DE JORNADA</label>
+                <input type="date" id="movFechaJornada" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;font-weight:500;">CAMBIO INICIAL $</label>
+                <input type="number" id="movCambioI" value="2000" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+              </div>
             </div>
             <div id="jornadaActivaWarning" style="display:none;background:#FAEEDA;border:0.5px solid #BA7517;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:#633806;"></div>
             <button id="btnLanzarJornada" onclick="lanzarJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;">🚀 Lanzar jornada</button>
@@ -1412,7 +1418,7 @@ a { color: var(--green); }
         <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">EFECTIVO + CAMBIO</div><div style="font-size:18px;font-weight:600;color:#185FA5;" id="gCajaEfC">$0</div></div>
         <div style="background:#DCFCE7;border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:#14532D;margin-bottom:3px;font-weight:600;">TRANSFERENCIAS</div><div style="font-size:18px;font-weight:600;color:#15803D;" id="gCajaTr">$0</div></div>
         <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">PRODUCTOS VENDIDOS</div><div style="font-size:18px;font-weight:600;" id="gCajaCant">0</div></div>
-        <div style="background:#EAF3DE;border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:#3B6D11;margin-bottom:3px;">TOTAL DEL DÍA</div><div style="font-size:18px;font-weight:600;color:#3B6D11;" id="gCajaTot">$0</div></div>
+        <div style="background:#3B6D11;border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:#c8e8a0;margin-bottom:3px;font-weight:600;">TOTAL DEL DÍA</div><div style="font-size:18px;font-weight:700;color:#ffffff;" id="gCajaTot">$0</div></div>
       </div>
       <div style="background:var(--bg);border:0.5px solid var(--brd);border-radius:var(--radius-md);padding:12px 14px;">
         <p style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">Por edificio</p>
@@ -1470,9 +1476,9 @@ const SPRODS = [
 let cur=null,ePid=null,products=[],ventas=[],cats=['natural','dulce','salado'],gastos=[],fracciones=[],histTransf=[],jornadaMovil=null;
 // Fecha/hora Mendoza GMT-3
 function nowMza(){return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Mendoza'}));}
-function dateMza(){return nowMza().toISOString().split('T')[0];}
+function dateMza(){const n=nowMza();const y=n.getFullYear();const m=String(n.getMonth()+1).padStart(2,'0');const d=String(n.getDate()).padStart(2,'0');return `${y}-${m}-${d}`;}
 function timeMza(){return nowMza().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});}
-function dtMza(){const n=nowMza();return n.toISOString().split('T')[0]+'T'+n.toTimeString().slice(0,5);}
+function dtMza(){const n=nowMza();const y=n.getFullYear();const m=String(n.getMonth()+1).padStart(2,'0');const d=String(n.getDate()).padStart(2,'0');const hh=String(n.getHours()).padStart(2,'0');const mm=String(n.getMinutes()).padStart(2,'0');return `${y}-${m}-${d}T${hh}:${mm}`;}
 let nPid=1,nVid=1,nGid=1,nFid=1;
 let togS={sale:false,ev:false},sItems=[],eItems=[],tItems=[],conceptoItems=[],confirmCb=null;
 let syncChannel=null;
@@ -2904,6 +2910,9 @@ function addMovCarritoItem(){
   renderMovCarrito();
 }
 function renderMovCarrito(){
+  // Inicializar fecha con día actual Mendoza si está vacía
+  const fechaInput=document.getElementById('movFechaJornada');
+  if(fechaInput&&!fechaInput.value)fechaInput.value=dateMza();
   const warn=document.getElementById('jornadaActivaWarning');
   const btn=document.getElementById('btnLanzarJornada');
   if(warn&&btn){
@@ -2944,11 +2953,12 @@ async function lanzarJornada(){
   const cambio=parseFloat(document.getElementById('movCambioI').value)||0;
   jornadaMovil={
     items:movCarritoItems.map(it=>({pid:it.pid,vi:it.vi,qty:it.qty,vendido:0})),
-    cambio,fecha:dateMza(),
+    cambio,fecha:document.getElementById('movFechaJornada')?.value||dateMza(),
     histVentas:[],activa:true
   };
   await saveJornada();
   movCarritoItems=[];
+  const fi=document.getElementById('movFechaJornada');if(fi)fi.value='';
   renderMovCarrito();
   showMsg('✅ Jornada lanzada. Gianella ya puede ver su stock.',true);
 }
@@ -2970,7 +2980,7 @@ function calcPagoGianella(){
     const ganancia=hayCosto?tot-costoTotal-pagoTotal:null;
     prev.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--txt2);">Fijo</span><span style="font-weight:600;">${gFmt(fijo)}</span></div>`
       +`<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--txt2);">Comisión (${pct}% de ${gFmt(tot)})</span><span style="font-weight:600;">${gFmt(comision)}</span></div>`
-      +`<div style="display:flex;justify-content:space-between;border-top:0.5px solid var(--brd);margin-top:6px;padding-top:6px;"><span style="font-weight:600;color:var(--amber);">Total a Gianella</span><span style="font-weight:700;color:var(--amber);">${gFmt(pagoTotal)}</span></div>`
+      +`<div style="display:flex;justify-content:space-between;border-top:0.5px solid var(--brd);margin-top:6px;padding-top:6px;"><span style="font-weight:600;color:#9A3412;">Total a Gianella</span><span style="font-weight:700;color:#9A3412;">${gFmt(pagoTotal)}</span></div>`
       +(ganancia!=null?`<div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-weight:600;color:${ganancia>=0?'#3B6D11':'#A32D2D'};">Ganancia armadito</span><span style="font-weight:700;color:${ganancia>=0?'#3B6D11':'#A32D2D'};">${gFmt(ganancia)}</span></div>`:'<div style="font-size:11px;color:var(--txt3);margin-top:6px;">Sin costos cargados — ganancia no calculable</div>');
   } else {
     prev.style.display='none';
@@ -3025,7 +3035,7 @@ async function cerrarJornada(){
   rc.style.display='block';
   rc.innerHTML=`<p style="font-weight:600;margin-bottom:8px;">✅ Jornada cerrada</p>
     <p style="margin-bottom:4px;">${uds} productos vendidos · Total: <strong>${gFmt(tot)}</strong></p>
-    ${pagoGianella>0?`<p style="margin-top:6px;font-size:12px;color:var(--amber);">Gianella: ${gFmt(pagoGianella)} (fijo ${gFmt(fijo)} + comisión ${gFmt(comision)})</p>`:''}
+    ${pagoGianella>0?`<p style="margin-top:6px;font-size:12px;color:#9A3412;">Gianella: ${gFmt(pagoGianella)} (fijo ${gFmt(fijo)} + comisión ${gFmt(comision)})</p>`:''}
     ${ganancia!=null?`<p style="font-size:13px;font-weight:600;margin-top:4px;color:${ganancia>=0?'#3B6D11':'#A32D2D'};">Ganancia armadito: ${gFmt(ganancia)}</p>`:''}
     ${sob.length?`<p style="margin-top:8px;font-size:12px;color:var(--txt2);">Sobrantes: <strong>${sob.join(', ')}</strong></p>`:'<p style="color:#3B6D11;font-size:12px;margin-top:6px;">¡Todo vendido!</p>'}
     <p style="margin-top:10px;font-size:12px;color:var(--txt2);">Usá "Armar carrito" para la próxima jornada.</p>`;
@@ -3125,7 +3135,7 @@ async function renderHistJornadas(){
           +'<div style="background:#F3E8FF;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#3C3489;font-weight:600;">PALACIO</div><div style="font-size:13px;color:#7C3AED;font-weight:700;">'+gFmt(j.totPA||0)+' · '+(j.udsPA||0)+' uds</div></div>'
           +'<div style="background:#E6F1FB;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#0C447C;font-weight:600;">EFECTIVO</div><div style="font-size:13px;color:#185FA5;font-weight:700;">'+gFmt(j.ef||0)+'</div></div>'
           +'<div style="background:#DCFCE7;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#14532D;font-weight:600;">TRANSFERENCIA</div><div style="font-size:13px;color:#15803D;font-weight:700;">'+gFmt(j.tr||0)+'</div></div>'
-          +(j.pagoGianella!=null&&j.pagoGianella>0?'<div style="background:var(--amber-l);border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#854F0B;font-weight:600;">GIANELLA</div><div style="font-size:13px;color:var(--amber);font-weight:700;">'+gFmt(j.pagoGianella)+'</div></div>':'')
+          +(j.pagoGianella!=null&&j.pagoGianella>0?'<div style="background:#9A3412;border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:#FECACA;font-weight:600;">GIANELLA</div><div style="font-size:13px;color:#ffffff;font-weight:700;">'+gFmt(j.pagoGianella)+'</div></div>':'')
           +(j.ganancia!=null?'<div style="background:'+(j.ganancia>=0?'#EAF3DE':'#FCEBEB')+';border-radius:6px;padding:6px 8px;"><div style="font-size:10px;color:'+(j.ganancia>=0?'#3B6D11':'#A32D2D')+';font-weight:600;">GANANCIA</div><div style="font-size:13px;color:'+(j.ganancia>=0?'#3B6D11':'#A32D2D')+';font-weight:700;">'+gFmt(j.ganancia)+'</div></div>':'')
         +'</div>'
         +'<div id="jornadaDetalle_'+i+'" style="display:none;padding-top:8px;border-top:0.5px solid var(--brd);">'
