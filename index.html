@@ -947,7 +947,30 @@ a { color: var(--green); }
               </div>
             </div>
             <div id="jornadaActivaWarning" style="display:none;background:#FAEEDA;border:0.5px solid #BA7517;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:#633806;"></div>
+            <button id="btnEditarJornada" onclick="toggleEditJornada(true)" style="display:none;width:100%;margin-bottom:8px;padding:9px;border-radius:var(--radius-sm);background:#E6F1FB;color:#185FA5;border:0.5px solid #185FA5;cursor:pointer;font-size:13px;font-weight:600;">✏️ Editar jornada activa</button>
             <button id="btnLanzarJornada" onclick="lanzarJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;">🚀 Lanzar jornada</button>
+          </div>
+          <!-- Editar jornada activa -->
+          <div class="card" id="cardEditarJornada" style="margin-bottom:10px;display:none;border-color:#185FA5;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <p style="font-size:15px;font-weight:600;margin:0;">✏️ Editar jornada activa</p>
+              <button onclick="toggleEditJornada(false)" style="background:none;border:none;color:var(--txt2);font-size:20px;cursor:pointer;padding:0 4px;">×</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div>
+                <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;font-weight:500;">FECHA</label>
+                <input type="date" id="editJornadaFecha" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;font-weight:500;">CAMBIO INICIAL $</label>
+                <input type="number" id="editJornadaCambio" style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
+              </div>
+            </div>
+            <p style="font-size:12px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Productos del carrito</p>
+            <p style="font-size:12px;color:var(--txt2);margin-bottom:10px;">Si aumentás una cantidad, Gianella tiene más disponible. Si la bajás, se descuenta. No podés bajar debajo de lo ya vendido.</p>
+            <div id="editJornadaItems"></div>
+            <button onclick="addEditJornadaItem()" style="width:100%;margin-bottom:12px;padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;cursor:pointer;">+ Agregar producto</button>
+            <button onclick="guardarEditJornada()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;">Guardar cambios</button>
           </div>
           <!-- Reponer -->
           <div class="card" style="margin-bottom:10px;">
@@ -2966,6 +2989,82 @@ function renderMovVivo(){
   }).join('');
 }
 
+let editJornadaItems=[];
+
+function toggleEditJornada(open){
+  const card=document.getElementById('cardEditarJornada');
+  if(!card)return;
+  if(open&&jornadaMovil&&jornadaMovil.activa){
+    card.style.display='block';
+    document.getElementById('editJornadaFecha').value=jornadaMovil.fecha||dateMza();
+    document.getElementById('editJornadaCambio').value=jornadaMovil.cambio||0;
+    // Clonar items actuales de la jornada
+    editJornadaItems=jornadaMovil.items.map(it=>({pid:it.pid,vi:it.vi,qty:it.qty,vendido:it.vendido||0}));
+    renderEditJornadaItems();
+    card.scrollIntoView({behavior:'smooth',block:'start'});
+  } else {
+    card.style.display='none';
+    editJornadaItems=[];
+  }
+}
+
+function renderEditJornadaItems(){
+  const el=document.getElementById('editJornadaItems');if(!el)return;
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({v,vi})).filter(({v})=>v.priceMovil>0).map(({v,vi})=>{
+    const varDesc=[v.name,v.weight].filter(x=>x&&x.trim()).join(' – ');
+    return {pid:p.id,vi,label:`${p.name} ${varDesc}`};
+  }));
+  el.innerHTML=editJornadaItems.map((it,i)=>{
+    const vendido=it.vendido||0;
+    return `<div style="margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:var(--radius-sm);">
+      <select onchange="editJornadaItems[${i}].pid=+this.value.split('-')[0];editJornadaItems[${i}].vi=+this.value.split('-')[1];editJornadaItems[${i}].vendido=0;renderEditJornadaItems();" style="width:100%;padding:8px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;margin-bottom:8px;-webkit-appearance:none;">
+        ${opts.map(o=>`<option value="${o.pid}-${o.vi}"${it.pid===o.pid&&it.vi===o.vi?' selected':''}>${o.label}</option>`).join('')}
+      </select>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--txt2);flex:1;">Cantidad total:<br><span style="font-size:10px;">ya vendidos: ${vendido}</span></span>
+        <button onclick="editJornadaItems[${i}].qty=Math.max(${vendido},editJornadaItems[${i}].qty-1);renderEditJornadaItems();" style="width:34px;height:34px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <span style="min-width:28px;text-align:center;font-size:16px;font-weight:700;">${it.qty}</span>
+        <button onclick="editJornadaItems[${i}].qty=(editJornadaItems[${i}].qty||1)+1;renderEditJornadaItems();" style="width:34px;height:34px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <button onclick="if(editJornadaItems[${i}].vendido>0){showMsg('No se puede eliminar: ya tiene ventas.');return;}editJornadaItems.splice(${i},1);renderEditJornadaItems();" style="width:34px;height:34px;border:0.5px solid var(--red);border-radius:var(--radius-sm);background:var(--bg2);color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addEditJornadaItem(){
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const opts=sorted.flatMap(p=>p.variants.map((v,vi)=>({pid:p.id,vi})).filter(({pid,vi})=>products.find(x=>x.id===pid).variants[vi].priceMovil>0));
+  if(!opts.length)return;
+  editJornadaItems.push({pid:opts[0].pid,vi:opts[0].vi,qty:1,vendido:0});
+  renderEditJornadaItems();
+}
+
+async function guardarEditJornada(){
+  if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
+  const nuevaFecha=document.getElementById('editJornadaFecha').value;
+  const nuevoCambio=parseFloat(document.getElementById('editJornadaCambio').value)||0;
+  // Validar que ningún item tenga qty < vendido
+  for(const it of editJornadaItems){
+    if(it.qty<(it.vendido||0)){
+      const p=products.find(x=>x.id===it.pid);
+      showMsg(`Cantidad inválida en ${p?p.name:'producto'}: ya se vendieron ${it.vendido}.`);return;
+    }
+  }
+  // Actualizar jornada
+  jornadaMovil.fecha=nuevaFecha;
+  jornadaMovil.cambio=nuevoCambio;
+  // Preservar vendidos en los nuevos items
+  jornadaMovil.items=editJornadaItems.map(it=>({
+    pid:it.pid,vi:it.vi,qty:it.qty,vendido:it.vendido||0
+  }));
+  await saveJornada();
+  toggleEditJornada(false);
+  renderMovCarrito();renderResumenMovil();renderMovVivo();
+  showMsg('✅ Jornada actualizada.',true);
+}
+
+
 function addMovCarritoItem(){
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
   const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>({pid:p.id,vi})));
@@ -2986,9 +3085,12 @@ function renderMovCarrito(){
       warn.style.display='block';
       warn.textContent='⚠️ Jornada activa del '+fd+'. Cerrala antes de lanzar una nueva.';
       btn.style.opacity='0.4';btn.style.pointerEvents='none';
+      const eb=document.getElementById('btnEditarJornada');if(eb)eb.style.display='block';
     } else {
       warn.style.display='none';
       btn.style.opacity='1';btn.style.pointerEvents='auto';
+      const eb=document.getElementById('btnEditarJornada');if(eb)eb.style.display='none';
+      toggleEditJornada(false);
     }
   }
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
