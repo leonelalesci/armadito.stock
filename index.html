@@ -297,6 +297,11 @@ a { color: var(--green); }
   background: var(--bg);
   border-top: 0.5px solid var(--brd);
   padding-bottom: env(safe-area-inset-bottom, 0);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 .nav-bottom-inner {
   display: flex;
@@ -622,6 +627,18 @@ a { color: var(--green); }
   /* Nav inferior en móvil */
   .nav-top    { display: none; }
   .nav-bottom { display: block; }
+
+  /* iOS Safari fix: prevent momentum scroll from displacing fixed nav */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  #mainScreen {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
 
   .content {
     padding: 14px 14px 110px;
