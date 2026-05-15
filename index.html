@@ -1442,18 +1442,6 @@ a { color: var(--green); }
 
     <!-- CAJA -->
     <div id="gPnlCa" class="gPnl" style="padding:16px;display:none;">
-
-    <!-- MODAL CONFIRMAR VENTA -->
-    <div id="gModalConfirm" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.55);display:none;align-items:flex-end;justify-content:center;">
-      <div style="background:var(--bg);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -4px 30px rgba(0,0,0,0.2);">
-        <p style="font-size:16px;font-weight:700;text-align:center;margin-bottom:6px;">¿Confirmar venta?</p>
-        <div id="gConfirmDetalle" style="background:var(--bg2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <button onclick="cerrarGConfirm()" style="padding:14px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg2);color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;">Cancelar</button>
-          <button id="gBtnConfirmarSi" onclick="ejecutarGVenta()" style="padding:14px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;">Confirmar</button>
-        </div>
-      </div>
-    </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
         <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">CAMBIO INICIAL</div><div style="font-size:18px;font-weight:600;" id="gCajaCambio">$0</div></div>
         <div style="background:#E6F1FB;border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:#0C447C;margin-bottom:3px;font-weight:600;">EFECTIVO</div><div style="font-size:18px;font-weight:600;color:#185FA5;" id="gCajaEf">$0</div></div>
@@ -1472,6 +1460,18 @@ a { color: var(--green); }
           <span style="background:#F3E8FF;color:#26215C;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Palacio de Justicia</span>
           <span id="gCajaPa" style="font-weight:600;font-size:14px;">$0</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMAR VENTA GIANELLA -->
+  <div id="gModalConfirm" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.55);align-items:flex-end;justify-content:center;">
+    <div style="background:var(--bg);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -4px 30px rgba(0,0,0,0.2);">
+      <p style="font-size:16px;font-weight:700;text-align:center;margin-bottom:12px;">¿Confirmar venta?</p>
+      <div id="gConfirmDetalle" style="background:var(--bg2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button onclick="cerrarGConfirm()" style="padding:14px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg2);color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;">Cancelar</button>
+        <button onclick="ejecutarGVenta()" style="padding:14px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;">✓ Confirmar</button>
       </div>
     </div>
   </div>
