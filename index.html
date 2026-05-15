@@ -1431,7 +1431,7 @@ a { color: var(--green); }
           <label style="display:block;font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">Nota (opcional)</label>
           <input type="text" id="gVNota" placeholder="algo a recordar..." style="width:100%;padding:9px 12px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:14px;" />
         </div>
-        <button id="gBtnConfirmar" onclick="confirmarGVenta()" style="width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:700;">Confirmar venta</button>
+        <button id="gBtnConfirmar" onclick="abrirGConfirm()" style="width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:700;">Confirmar venta</button>
       </div>
     </div>
 
@@ -1442,6 +1442,18 @@ a { color: var(--green); }
 
     <!-- CAJA -->
     <div id="gPnlCa" class="gPnl" style="padding:16px;display:none;">
+
+    <!-- MODAL CONFIRMAR VENTA -->
+    <div id="gModalConfirm" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.55);display:none;align-items:flex-end;justify-content:center;">
+      <div style="background:var(--bg);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -4px 30px rgba(0,0,0,0.2);">
+        <p style="font-size:16px;font-weight:700;text-align:center;margin-bottom:6px;">¿Confirmar venta?</p>
+        <div id="gConfirmDetalle" style="background:var(--bg2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <button onclick="cerrarGConfirm()" style="padding:14px;border-radius:var(--radius-sm);border:0.5px solid var(--brd);background:var(--bg2);color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;">Cancelar</button>
+          <button id="gBtnConfirmarSi" onclick="ejecutarGVenta()" style="padding:14px;border-radius:var(--radius-sm);background:var(--green);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;">Confirmar</button>
+        </div>
+      </div>
+    </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
         <div style="background:var(--bg2);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:var(--txt2);margin-bottom:3px;">CAMBIO INICIAL</div><div style="font-size:18px;font-weight:600;" id="gCajaCambio">$0</div></div>
         <div style="background:#E6F1FB;border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:11px;color:#0C447C;margin-bottom:3px;font-weight:600;">EFECTIVO</div><div style="font-size:18px;font-weight:600;color:#185FA5;" id="gCajaEf">$0</div></div>
@@ -2770,6 +2782,37 @@ function calcGVenta(){
 
 let _gEditandoId=null,_gEditandoIts=null;
 
+function abrirGConfirm(){
+  if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
+  const items=gVItems.filter(it=>it.pid!==null&&it.vi!==null);
+  if(!items.length){showMsg('Agregá al menos un producto.');return;}
+  const edifLabel=gEdifSel==='pj'?'Poder Judicial':'Palacio de Justicia';
+  let sub=0;
+  const lineas=items.map(it=>{
+    const p=products.find(x=>x.id===it.pid);
+    if(!p)return '';
+    const v=p.variants[it.vi];
+    sub+=(v.priceMovil||0)*it.qty;
+    return `${it.qty}x ${p.name}${v.name&&v.name.trim()?' '+v.name:''}${v.weight&&v.weight.trim()?' \u2013 '+v.weight:''}`;
+  }).filter(Boolean);
+  const desc=parseFloat(document.getElementById('gVDesc').value)||0;
+  const tot=Math.max(0,sub-desc);
+  const pagoLabel=gMixtoOn?'mixto':gPagoSel==='ef'?'efectivo':'transferencia';
+  const det=document.getElementById('gConfirmDetalle');
+  if(det)det.innerHTML=`<div style="font-weight:600;margin-bottom:6px;">${edifLabel}</div>`
+    +lineas.map(l=>`<div style="padding:2px 0;">• ${l}</div>`).join('')
+    +`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--brd);display:flex;justify-content:space-between;"><span style="color:var(--txt2);">${pagoLabel}</span><span style="font-weight:700;">${gFmt(tot)}</span></div>`;
+  const m=document.getElementById('gModalConfirm');
+  if(m){m.style.display='flex';}
+}
+function cerrarGConfirm(){
+  const m=document.getElementById('gModalConfirm');
+  if(m)m.style.display='none';
+}
+async function ejecutarGVenta(){
+  cerrarGConfirm();
+  await confirmarGVenta();
+}
 async function confirmarGVenta(){
   if(!jornadaMovil||!jornadaMovil.activa){showMsg('No hay jornada activa.');return;}
   const desc=parseFloat(document.getElementById('gVDesc').value)||0;
@@ -3017,10 +3060,16 @@ function renderEditJornadaItems(){
   }));
   el.innerHTML=editJornadaItems.map((it,i)=>{
     const vendido=it.vendido||0;
-    return `<div style="margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:var(--radius-sm);">
-      <select onchange="editJornadaItems[${i}].pid=+this.value.split('-')[0];editJornadaItems[${i}].vi=+this.value.split('-')[1];editJornadaItems[${i}].vendido=0;renderEditJornadaItems();" style="width:100%;padding:8px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;margin-bottom:8px;-webkit-appearance:none;">
-        ${opts.map(o=>`<option value="${o.pid}-${o.vi}"${it.pid===o.pid&&it.vi===o.vi?' selected':''}>${o.label}</option>`).join('')}
-      </select>
+    return `<div draggable="true" data-idx="${i}" class="carrito-item" style="margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:var(--radius-sm);"
+      ondragstart="dragStart(event,'editJornada')" ondragover="dragOver(event)" ondrop="dropItem(event,'editJornada')" ondragend="dragEnd(event)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="color:var(--txt2);font-size:18px;cursor:grab;touch-action:none;"
+          ontouchstart="touchDragStart(event,${i},'editJornada')" ontouchmove="touchDragMove(event)" ontouchend="touchDragEnd(event,'editJornada')">⠿</span>
+        <select style="flex:1;padding:8px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;"
+          onchange="editJornadaItems[${i}].pid=+this.value.split('-')[0];editJornadaItems[${i}].vi=+this.value.split('-')[1];editJornadaItems[${i}].vendido=0;renderEditJornadaItems();">
+          ${opts.map(o=>`<option value="${o.pid}-${o.vi}"${it.pid===o.pid&&it.vi===o.vi?' selected':''}>${o.label}</option>`).join('')}
+        </select>
+      </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:12px;color:var(--txt2);flex:1;">Cantidad total:<br><span style="font-size:10px;">ya vendidos: ${vendido}</span></span>
         <button onclick="editJornadaItems[${i}].qty=Math.max(${vendido},editJornadaItems[${i}].qty-1);renderEditJornadaItems();" style="width:34px;height:34px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
@@ -3065,6 +3114,68 @@ async function guardarEditJornada(){
 }
 
 
+// ══════════════════════════════════════
+//   DRAG & DROP — carrito y editJornada
+// ══════════════════════════════════════
+let _dragSrcIdx=null,_dragCtx=null;
+
+function dragStart(e,ctx){
+  _dragSrcIdx=+e.currentTarget.dataset.idx;
+  _dragCtx=ctx;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.style.opacity='0.4';
+}
+function dragEnd(e){e.currentTarget.style.opacity='1';}
+function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function dropItem(e,ctx){
+  e.preventDefault();
+  const toIdx=+e.currentTarget.dataset.idx;
+  if(_dragSrcIdx===null||_dragSrcIdx===toIdx||_dragCtx!==ctx)return;
+  const arr=ctx==='carrito'?movCarritoItems:editJornadaItems;
+  const [moved]=arr.splice(_dragSrcIdx,1);
+  arr.splice(toIdx,0,moved);
+  _dragSrcIdx=null;_dragCtx=null;
+  if(ctx==='carrito')renderMovCarrito();
+  else renderEditJornadaItems();
+}
+
+// Touch drag (móvil)
+let _touchIdx=null,_touchCtx=null,_touchClone=null,_touchOffY=0;
+function touchDragStart(e,idx,ctx){
+  _touchIdx=idx;_touchCtx=ctx;
+  const el=e.currentTarget.closest('[data-idx]');
+  const rect=el.getBoundingClientRect();
+  _touchOffY=e.touches[0].clientY-rect.top;
+  _touchClone=el.cloneNode(true);
+  _touchClone.style.cssText+=';position:fixed;left:'+rect.left+'px;width:'+rect.width+'px;opacity:0.75;pointer-events:none;z-index:9999;top:'+(e.touches[0].clientY-_touchOffY)+'px;';
+  document.body.appendChild(_touchClone);
+  el.style.opacity='0.3';
+}
+function touchDragMove(e){
+  e.preventDefault();
+  if(!_touchClone)return;
+  _touchClone.style.top=(e.touches[0].clientY-_touchOffY)+'px';
+}
+function touchDragEnd(e,ctx){
+  if(!_touchClone)return;
+  // Find which element we're over
+  _touchClone.style.display='none';
+  const el=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+  _touchClone.remove();_touchClone=null;
+  const target=el?el.closest('[data-idx]'):null;
+  const toIdx=target?+target.dataset.idx:null;
+  // Restore opacity
+  document.querySelectorAll('[data-idx]').forEach(d=>d.style.opacity='1');
+  if(toIdx!==null&&toIdx!==_touchIdx){
+    const arr=ctx==='carrito'?movCarritoItems:editJornadaItems;
+    const [moved]=arr.splice(_touchIdx,1);
+    arr.splice(toIdx,0,moved);
+    if(ctx==='carrito')renderMovCarrito();
+    else renderEditJornadaItems();
+  }
+  _touchIdx=null;_touchCtx=null;
+}
+
 function addMovCarritoItem(){
   const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
   const opts=sorted.flatMap(p=>p.variants.filter(v=>v.priceMovil>0).map((v,vi)=>({pid:p.id,vi})));
@@ -3098,7 +3209,10 @@ function renderMovCarrito(){
   const el=document.getElementById('movCarritoWrap');if(!el)return;
   if(!movCarritoItems.length)movCarritoItems=[{pid:opts[0]?.pid||0,vi:opts[0]?.vi||0,qty:1}];
   el.innerHTML=movCarritoItems.map((it,i)=>`
-    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:8px;">
+    <div draggable="true" data-idx="${i}" class="carrito-item" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;margin-bottom:8px;cursor:default;"
+      ondragstart="dragStart(event,'carrito')" ondragover="dragOver(event)" ondrop="dropItem(event,'carrito')" ondragend="dragEnd(event)">
+      <span style="color:var(--txt2);font-size:18px;cursor:grab;padding:0 4px;touch-action:none;" 
+        ontouchstart="touchDragStart(event,${i},'carrito')" ontouchmove="touchDragMove(event)" ontouchend="touchDragEnd(event,'carrito')">⠿</span>
       <select onchange="movCarritoItems[${i}].pid=+this.value.split('-')[0];movCarritoItems[${i}].vi=+this.value.split('-')[1];" style="padding:9px;border:0.5px solid var(--brd);border-radius:var(--radius-sm);background:var(--bg);color:var(--txt);font-size:13px;-webkit-appearance:none;">
         ${opts.map(o=>`<option value="${o.pid}-${o.vi}" ${it.pid===o.pid&&it.vi===o.vi?'selected':''}>${o.label}</option>`).join('')}
       </select>
